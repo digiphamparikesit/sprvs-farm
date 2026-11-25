@@ -3,12 +3,14 @@ import { showAlert } from './utils.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     const tbody = document.getElementById('tbody-checklist');
-    const selectRuangan = document.getElementById('ruangan');
+    const selectKategori = document.getElementById('kategori_pilihan'); // Dropdown baru
+    const selectRuangan = document.getElementById('ruangan'); // Dropdown lama
     const form = document.getElementById('form-supervisi');
 
     let semuaPertanyaan = [];
+    let semuaRuangan = []; // Menyimpan data ruangan dari database
 
-    // 1. LOAD RUANGAN
+    // 1. LOAD SEMUA RUANGAN (Tapi jangan dimasukkan ke dropdown dulu)
     async function loadRuangan() {
         const { data, error } = await supabase
             .from('ruangan')
@@ -20,15 +22,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             showAlert('Gagal memuat daftar ruangan: ' + error.message, 'error');
             return;
         }
-
-        selectRuangan.innerHTML = '<option value="">-- Pilih Ruangan --</option>';
-        data.forEach(r => {
-            const opt = document.createElement('option');
-            opt.value = r.id;
-            opt.textContent = r.nama_ruangan;
-            opt.dataset.nama = r.nama_ruangan;
-            selectRuangan.appendChild(opt);
-        });
+        semuaRuangan = data || [];
     }
 
     // 2. LOAD SEMUA MASTER PERTANYAAN
@@ -47,7 +41,38 @@ document.addEventListener('DOMContentLoaded', async () => {
         semuaPertanyaan = data || [];
     }
 
-    // 3. RENDER TABEL
+    // 3. RENDER DROPDOWN RUANGAN BERDASARKAN KATEGORI
+    selectKategori.addEventListener('change', (e) => {
+        const kategoriDipilih = e.target.value;
+        
+        // Reset dropdown ruangan
+        selectRuangan.innerHTML = '<option value="">-- Pilih Ruangan --</option>';
+        
+        if (!kategoriDipilih) {
+            selectRuangan.disabled = true;
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 20px;">Silakan pilih Kelompok dan Ruangan terlebih dahulu.</td></tr>';
+            return;
+        }
+
+        // Filter ruangan berdasarkan kategori
+        const ruanganTersaring = semuaRuangan.filter(r => r.kategori === kategoriDipilih);
+
+        if (ruanganTersaring.length === 0) {
+            selectRuangan.innerHTML = '<option value="">-- Tidak ada ruangan --</option>';
+            selectRuangan.disabled = true;
+        } else {
+            selectRuangan.disabled = false;
+            ruanganTersaring.forEach(r => {
+                const opt = document.createElement('option');
+                opt.value = r.id;
+                opt.textContent = r.nama_ruangan;
+                opt.dataset.nama = r.nama_ruangan;
+                selectRuangan.appendChild(opt);
+            });
+        }
+    });
+
+    // 4. RENDER TABEL PERTANYAAN
     function renderPertanyaan(filterRuangan = '') {
         if (!filterRuangan) {
             tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 20px;">Silakan pilih Unit/Ruangan terlebih dahulu untuk menampilkan pertanyaan.</td></tr>';
@@ -100,7 +125,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         tbody.innerHTML = html;
     }
 
-    // 4. EVENT DELEGATION RADIO S/TS
+    // 5. EVENT DELEGATION RADIO S/TS
     tbody.addEventListener('change', (e) => {
         if (e.target.type === 'radio' && e.target.name.startsWith('status_')) {
             const row = e.target.closest('tr');
@@ -120,14 +145,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // 5. DROPDOWN RUANGAN DIUBAH
+    // 6. EVENT SAAT DROPDOWN RUANGAN DIUBAH
     selectRuangan.addEventListener('change', (e) => {
         const selectedOption = e.target.options[e.target.selectedIndex];
         const namaRuangan = selectedOption.dataset.nama || '';
         renderPertanyaan(namaRuangan);
     });
 
-    // 6. HANDLE SUBMIT FORM
+    // 7. HANDLE SUBMIT FORM
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
 
@@ -159,8 +184,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         rows.forEach(row => {
             const qId = row.dataset.id;
             const selectedRadio = row.querySelector(`input[name="status_${qId}"]:checked`);
-            
-            // PERBAIKAN: Gunakan textarea
             const catatanInput = row.querySelector(`textarea[name="catatan_${qId}"]`);
 
             if (!selectedRadio) {
@@ -236,7 +259,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // 7. INISIALISASI
+    // 8. INISIALISASI
     await loadRuangan();
     await loadMasterPertanyaan();
     renderPertanyaan('');
