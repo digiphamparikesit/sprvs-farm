@@ -126,7 +126,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </td>
                     <td><textarea class="input-catatan" name="catatan_${q.id}" rows="2" placeholder="Wajib diisi jika TS" disabled></textarea></td>
                     <td class="text-center">${q.kategori}</td>
-                    <td class="text-center">${q.default_ruangan}</td>
+                    <td class="text-center" style="display: none;">${q.default_ruangan || '-'}</td>
                 </tr>
             `;
         });
