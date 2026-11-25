@@ -178,15 +178,36 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        // CARI UUID ASLI DARI DATABASE BERDASARKAN NAMA RUANGAN YANG DIPILIH
-        // Pencarian menggunakan .includes() agar lebih fleksibel (misal di DB "Depo Farmasi", di form "Depo Farmasi / Gudang Farmasi")
-        const ruanganDB = semuaRuanganDB.find(r => 
-            r.nama_ruangan.toLowerCase().includes(namaRuanganDipilih.toLowerCase().split(' ')[0]) || 
-            namaRuanganDipilih.toLowerCase().includes(r.nama_ruangan.toLowerCase().split(' ')[0])
-        );
+                // CARI UUID ASLI DARI DATABASE BERDASARKAN KATA KUNCI KELOMPOK
+        let ruanganDB;
+        const kategoriDipilih = selectKategori.value;
+        const keyword = selectedOption.dataset.keyword || '';
+
+        if (kategoriDipilih === 'Farmasi') {
+            // Jika user pilih Farklin atau Depo, cari di database ruangan yang ada kata depo/farmasi/gudang
+            ruanganDB = semuaRuanganDB.find(r => 
+                r.nama_ruangan.toLowerCase().includes('depo') || 
+                r.nama_ruangan.toLowerCase().includes('gudang') || 
+                r.nama_ruangan.toLowerCase().includes('farmasi')
+            );
+        } else {
+            // Jika user pilih Unit (IGD, Laundry, dll), cari di database ruangan yang ada kata unit/igd/rawat/lab/laundry
+            ruanganDB = semuaRuanganDB.find(r => 
+                r.nama_ruangan.toLowerCase().includes('unit') || 
+                r.nama_ruangan.toLowerCase().includes('rawat') ||
+                r.nama_ruangan.toLowerCase().includes('laundry') ||
+                r.nama_ruangan.toLowerCase().includes('lab') ||
+                r.nama_ruangan.toLowerCase().includes('igd')
+            );
+        }
+
+        // Jika sama sekali tidak ada ruangan farmasi/unit di database, kita fallback ke ruangan pertama (opsional)
+        if (!ruanganDB && semuaRuanganDB.length > 0) {
+            ruanganDB = semuaRuanganDB[0];
+        }
 
         if (!ruanganDB) {
-            showAlert('Data ruangan ini belum ada di database Supabase. Harap tambahkan nama ruangan yang sesuai di tabel "ruangan".', 'error');
+            showAlert('Database ruangan Anda kosong. Harap isi tabel "ruangan" di Supabase minimal 1 data.', 'error');
             btnSubmit.disabled = false;
             btnSubmit.textContent = originalText;
             return;
