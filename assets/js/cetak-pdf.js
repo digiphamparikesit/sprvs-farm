@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <td style="text-align: center; color: ${color}; font-weight: bold;">${item.status}</td>
                 <td>${item.catatan_temuan || '-'}</td>
                 <td style="text-align: center;">${q.kategori}</td>
-                <td style="text-align: center;">${q.default_ruangan}</td>
+                <td style="text-align: center; display: none;">${q.default_ruangan}</td>
             </tr>
         `;
     });
