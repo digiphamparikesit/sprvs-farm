@@ -76,22 +76,36 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     document.getElementById('pdf-tbody').innerHTML = tbodyHtml;
 
-    // 5. Tombol Cetak
+        // 5. Tombol Cetak
     document.getElementById('btn-cetak').addEventListener('click', () => {
         const element = document.getElementById('print-area');
-        element.style.display = 'block'; // Tampilkan sementara
+        element.style.display = 'block';
 
         const opt = {
-            margin:       [10, 10, 10, 10],
+            margin:       [10, 10, 10, 10], // Margin kiri, atas, kanan, bawah (mm)
             filename:     `Supervisi_Farmasi_${header.ruangan.nama_ruangan}_${header.tanggal}.pdf`,
             image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2, useCORS: true },
-            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' }, // Landscape karena tabel lebar
-            pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+            html2canvas:  { scale: 2, useCORS: true, scrollY: 0 },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' },
+            // KITA HAPUS PAGEBREAK KAKU DAN GUNAKAN MODE CSS
+            pagebreak:    { mode: ['css', 'legacy'] } 
         };
 
+        // Tambahkan CSS sementara agar header tabel otomatis diulang
+        const style = document.createElement('style');
+        style.innerHTML = `
+            @media print {
+                thead { display: table-header-group; }
+                tr { page-break-inside: avoid; }
+            }
+            .table-pdf th { background-color: #e0e0e0; }
+            .table-pdf td, .table-pdf th { padding: 4px; font-size: 10px; }
+        `;
+        document.head.appendChild(style);
+
         html2pdf().set(opt).from(element).save().then(() => {
-            element.style.display = 'none'; // Sembunyikan kembali
+            element.style.display = 'none';
+            document.head.removeChild(style); // Bersihkan style setelah selesai
         });
     });
 });
