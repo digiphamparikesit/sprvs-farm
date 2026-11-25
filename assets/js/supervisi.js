@@ -24,8 +24,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const { data, error } = await supabase
             .from('master_pertanyaan')
             .select('*')
-            .order('kelompok', { ascending: true })
-            .order('no_urut', { ascending: true });
+            .order('no_urut', { ascending: true }) // <--- Urutkan berdasarkan nomor dulu
+            .order('id', { ascending: true });     // <--- Lalu berdasarkan ID
 
         if (error) {
             showAlert('Gagal memuat pertanyaan: ' + error.message, 'error');
