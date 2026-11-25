@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form Supervisi - RSUD AM Parikesit</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <script type="module" src="assets/js/supervisi.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <img src="assets/img/logo-rsud.png" alt="Logo RSUD" class="logo">
+            <div class="header-text">
+                <h1>FORMULIR SUPERVISI INSTALASI FARMASI</h1>
+                <p>RSUD Aji Muhammad Parikesit</p>
+            </div>
+        </header>
+
+        <form id="form-supervisi">
+            <!-- BAGIAN 1: INFORMASI UMUM -->
+            <fieldset>
+                <legend>Informasi Supervisi</legend>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label for="tanggal">Tanggal</label>
+                        <input type="date" id="tanggal" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="jam">Jam</label>
+                        <input type="time" id="jam" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="ruangan">Unit / Ruangan</label>
+                        <select id="ruangan" required>
+                            <option value="">-- Pilih Ruangan --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="kategori_risiko">Kategori Risiko Lokasi</label>
+                        <select id="kategori_risiko" required>
+                            <option value="Tinggi">[5] Tinggi</option>
+                            <option value="Sedang">[3-4] Sedang</option>
+                            <option value="Rendah">[1-2] Rendah</option>
+                            <option value="Insidental">Insidental</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="supervisor">Apoteker Supervisor</label>
+                        <input type="text" id="supervisor" placeholder="Nama Apoteker" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="pj">Penanggung Jawab Unit</label>
+                        <input type="text" id="pj" placeholder="Nama PJ Ruangan" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="metode">Metode</label>
+                        <input type="text" id="metode" placeholder="Observasi / wawancara / telaah dokumen" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="sampel">Sampel</label>
+                        <input type="text" id="sampel" placeholder="Jumlah/Item sampel" required>
+                    </div>
+                </div>
+            </fieldset>
+
+            <!-- BAGIAN 2: CHECKLIST DINAMIS -->
+            <fieldset>
+                <legend>Checklist Pengamatan</legend>
+                <p class="info-text">Petunjuk: S = Sesuai; TS = Tidak Sesuai. Setiap TS harus mempunyai bukti objektif.</p>
+                
+                <div class="table-responsive">
+                    <table id="tabel-checklist" class="table-checklist">
+                        <thead>
+                            <tr>
+                                <th width="4%">No</th>
+                                <th width="16%">Objek Pemeriksaan</th>
+                                <th width="8%">Acuan</th>
+                                <th width="28%">Pengamatan di Lapangan</th>
+                                <th width="8%">S / TS</th>
+                                <th width="20%">Catatan / No. Temuan</th>
+                                <th width="6%">Kategori</th>
+                                <th width="10%">Ruangan/Depo</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-checklist">
+                            <!-- Diisi via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </fieldset>
+
+            <div class="form-actions">
+                <button type="submit" id="btn-submit" class="btn btn-primary">Simpan & Lanjut ke Verifikasi</button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>
