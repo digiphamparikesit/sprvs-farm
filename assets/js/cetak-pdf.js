@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    // 2. Ambil Data Detail (Join dengan master_pertanyaan)
+    // 2. Ambil Data Detail
     const { data: detail, error: errDetail } = await supabase
         .from('supervisi_detail')
         .select(`
@@ -44,15 +44,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('pdf-risiko').innerText = header.kategori_risiko;
     document.getElementById('pdf-metode').innerText = `${header.metode} (Sampel: ${header.sampel})`;
 
-    // 4. Render Tabel (8 Kolom)
+    // 4. Render Tabel
     let tbodyHtml = '';
-
-    // Urutkan detail berdasarkan no_urut
     if (detail) {
-        detail.sort((a, b) => {
-            return a.master_pertanyaan.no_urut.localeCompare(b.master_pertanyaan.no_urut);
-        });
-
+        detail.sort((a, b) => a.master_pertanyaan.no_urut.localeCompare(b.master_pertanyaan.no_urut));
         detail.forEach((item) => {
             const q = item.master_pertanyaan;
             const color = item.status === 'S' ? 'green' : 'red';
@@ -73,75 +68,68 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     document.getElementById('pdf-tbody').innerHTML = tbodyHtml;
 
-    // 5. Tombol Cetak
+    // 5. Tombol Cetak (Metode Manual jsPDF)
     document.getElementById('btn-cetak').addEventListener('click', () => {
-        // Pastikan html2canvas tersedia
-        if (typeof html2canvas === 'undefined') {
-            showAlert('Library html2canvas tidak ditemukan. Pastikan script sudah dimuat.', 'error');
-            return;
-        }
-
         const element = document.getElementById('print-area');
-        element.style.display = 'block'; // Tampilkan sementara
+        element.style.display = 'block';
 
-        // Ambil area khusus untuk dijadikan Header berulang
-        const headerElement = document.querySelector('.kop-surat');
-        const judulElement = document.querySelector('.judul-laporan');
-        
-        if (!headerElement || !judulElement) {
-            showAlert('Elemen Kop Surat atau Judul tidak ditemukan di halaman.', 'error');
-            element.style.display = 'none';
-            return;
-        }
+        const opt = {
+            margin:       [35, 10, 15, 10], // Atas dibuat 35mm agar tidak menabrak kop manual
+            filename:     `Supervisi_Farmasi_${header.ruangan ? header.ruangan.nama_ruangan : 'RS'}_${header.tanggal}.pdf`,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' },
+            pagebreak:    { mode: ['css', 'legacy'] }
+        };
 
-        // Gabungkan Kop Surat dan Judul ke dalam satu div sementara
-        const tempHeader = document.createElement('div');
-        tempHeader.style.width = '1100px'; // Lebar landscape A4
-        tempHeader.style.background = 'white';
-        tempHeader.style.padding = '20px';
-        tempHeader.appendChild(headerElement.cloneNode(true));
-        
-        const garis = document.createElement('hr');
-        garis.style.border = '2px solid black';
-        garis.style.margin = '10px 0';
-        tempHeader.appendChild(garis);
-        tempHeader.appendChild(judulElement.cloneNode(true));
+        html2pdf().set(opt).from(element).toPdf().get('pdf').then((pdf) => {
+            const totalPages = pdf.internal.getNumberOfPages();
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
 
-        // Gunakan html2canvas untuk mengubah Header menjadi Gambar Base64
-        html2canvas(tempHeader, { scale: 2, useCORS: true }).then(canvas => {
-            const headerImgData = canvas.toDataURL('image/jpeg');
-            const headerHeight = (canvas.height * 190) / canvas.width; // Kalkulasi tinggi di PDF
-
-            const opt = {
-                margin:       [10, 10, 10, 10],
-                filename:     `Supervisi_Farmasi_${header.ruangan ? header.ruangan.nama_ruangan : 'RS'}_${header.tanggal}.pdf`,
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' },
-                pagebreak:    { mode: ['css', 'legacy'] }
-            };
-
-            // Jalankan html2pdf dengan callback untuk menyisipkan header
-            html2pdf().set(opt).from(element).toPdf().get('pdf').then((pdf) => {
-                const totalPages = pdf.internal.getNumberOfPages();
-                const pageWidth = pdf.internal.pageSize.getWidth();
+            for (let i = 1; i <= totalPages; i++) {
+                pdf.setPage(i);
                 
-                // Loop setiap halaman, tempelkan Header di atasnya
-                for (let i = 1; i <= totalPages; i++) {
-                    pdf.setPage(i);
-                    // Tempel gambar header (margin kiri 10, atas 10, lebar menyesuaikan)
-                    pdf.addImage(headerImgData, 'JPEG', 10, 10, pageWidth - 20, headerHeight);
-                    
-                    // Tambahkan nomor halaman di bawah
-                    pdf.setFontSize(10);
-                    pdf.text(`Halaman ${i} dari ${totalPages}`, pageWidth - 30, pdf.internal.pageSize.getHeight() - 10);
-                }
-            }).save().then(() => {
-                element.style.display = 'none'; // Sembunyikan kembali setelah selesai
-            });
+                // --- GAMBAR KOP SURAT MANUAL DI SETIAP HALAMAN ---
+                pdf.setFont("times", "normal");
+                pdf.setFontSize(12);
+                pdf.text("PEMERINTAH KABUPATEN KUTAI KARTANEGARA", pageWidth / 2, 10, { align: "center" });
+                pdf.text("DINAS KESEHATAN", pageWidth / 2, 15, { align: "center" });
+                pdf.text("UNIT ORGANISASI BERSIFAT KHUSUS", pageWidth / 2, 20, { align: "center" });
+                
+                pdf.setFont("times", "bold");
+                pdf.setFontSize(14);
+                pdf.text("RUMAH SAKIT UMUM DAERAH AJI MUHAMMAD PARIKESIT", pageWidth / 2, 26, { align: "center" });
+                
+                pdf.setFont("times", "normal");
+                pdf.setFontSize(9);
+                pdf.text("Jalan Ratu Agung Nomor 1, Teluk Dalam, Tenggarong Seberang, Kutai Kartanegara, Kalimantan Timur 75572", pageWidth / 2, 31, { align: "center" });
+                pdf.text("Telepon (0541) 661015, Laman: www.rsamp.kukarkab.go.id, Pos-el: rsudamparikesit@yahoo.com", pageWidth / 2, 35, { align: "center" });
+
+                // Garis Tebal Kop
+                pdf.setLineWidth(1);
+                pdf.line(10, 37, pageWidth - 10, 37);
+                pdf.setLineWidth(0.3);
+                pdf.line(10, 38, pageWidth - 10, 38);
+
+                // Judul Laporan
+                pdf.setFont("times", "bold");
+                pdf.setFontSize(12);
+                pdf.text("CHECKLIST SUPERVISI INSTALASI FARMASI", pageWidth / 2, 43, { align: "center" });
+                
+                // Garis Bawah Judul (Opsional)
+                // pdf.line((pageWidth/2) - 40, 44, (pageWidth/2) + 40, 44);
+
+                // --- FOOTER (NOMOR HALAMAN) ---
+                pdf.setFont("times", "normal");
+                pdf.setFontSize(10);
+                pdf.text(`Halaman ${i} dari ${totalPages}`, pageWidth - 20, pageHeight - 8, { align: "right" });
+            }
+        }).save().then(() => {
+            element.style.display = 'none';
         }).catch(err => {
-            console.error("Gagal membuat gambar header:", err);
-            showAlert('Gagal memproses header PDF.', 'error');
+            console.error(err);
+            showAlert('Terjadi kesalahan saat mencetak PDF.', 'error');
             element.style.display = 'none';
         });
     });
