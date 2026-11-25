@@ -8,32 +8,43 @@ document.addEventListener('DOMContentLoaded', async () => {
     const form = document.getElementById('form-supervisi');
 
     let semuaPertanyaan = [];
+    let semuaRuanganDB = []; // Menyimpan data asli dari Supabase
 
     // ==============================================================
-    // DATA MANUAL DROPDOWN RUANGAN (Sesuai Permintaan)
+    // DATA MANUAL DROPDOWN (Untuk tampilan di form)
     // ==============================================================
     const dataFarmasi = [
-        { id: 'depo', nama: 'Depo Farmasi / Gudang Farmasi', keyword: 'depo' },
-        { id: 'farklin', nama: 'Farklin', keyword: 'farklin' }
+        { nama: 'Depo Farmasi / Gudang Farmasi', keyword: 'depo' },
+        { nama: 'Farklin', keyword: 'farklin' }
     ];
 
     const dataUnit = [
-        { id: 'rawat', nama: 'Ruang Rawat Inap', keyword: 'unit' },
-        { id: 'igd', nama: 'IGD', keyword: 'unit' },
-        { id: 'icu', nama: 'ICU/NICU/PICU', keyword: 'unit' },
-        { id: 'ok', nama: 'Kamar Operasi', keyword: 'unit' },
-        { id: 'poli', nama: 'Poliklinik', keyword: 'unit' },
-        { id: 'tindakan', nama: 'Ruang Tindakan', keyword: 'unit' },
-        { id: 'ambulan', nama: 'Ambulan', keyword: 'unit' },
-        { id: 'laundry', nama: 'Instalasi Laundry', keyword: 'unit' },
-        { id: 'gizi', nama: 'Instalasi Gizi', keyword: 'unit' },
-        { id: 'pemulasaran', nama: 'Instalasi Pemulasaran', keyword: 'unit' },
-        { id: 'cssd', nama: 'Instalasi CSSD', keyword: 'unit' },
-        { id: 'lab_mikro', nama: 'Laboratorium Mikrobiologi', keyword: 'unit' },
-        { id: 'lab_pk', nama: 'Laboratorium PK', keyword: 'unit' }
+        { nama: 'Ruang Rawat Inap', keyword: 'unit' },
+        { nama: 'IGD', keyword: 'unit' },
+        { nama: 'ICU/NICU/PICU', keyword: 'unit' },
+        { nama: 'Kamar Operasi', keyword: 'unit' },
+        { nama: 'Poliklinik', keyword: 'unit' },
+        { nama: 'Ruang Tindakan', keyword: 'unit' },
+        { nama: 'Ambulan', keyword: 'unit' },
+        { nama: 'Instalasi Laundry', keyword: 'unit' },
+        { nama: 'Instalasi Gizi', keyword: 'unit' },
+        { nama: 'Instalasi Pemulasaran', keyword: 'unit' },
+        { nama: 'Instalasi CSSD', keyword: 'unit' },
+        { nama: 'Laboratorium Mikrobiologi', keyword: 'unit' },
+        { nama: 'Laboratorium PK', keyword: 'unit' }
     ];
 
-    // 1. LOAD SEMUA MASTER PERTANYAAN SAJA
+    // 1. LOAD DATA RUANGAN DARI SUPABASE (UNTUK MENDAPATKAN UUID)
+    async function loadDataRuanganDB() {
+        const { data, error } = await supabase.from('ruangan').select('id, nama_ruangan');
+        if (error) {
+            console.error('Gagal memuat ruangan dari DB:', error);
+            return;
+        }
+        semuaRuanganDB = data || [];
+    }
+
+    // 2. LOAD SEMUA MASTER PERTANYAAN
     async function loadMasterPertanyaan() {
         const { data, error } = await supabase
             .from('master_pertanyaan')
@@ -49,11 +60,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         semuaPertanyaan = data || [];
     }
 
-    // 2. LOGIKA SAAT KELOMPOK DIUBAH
+    // 3. LOGIKA SAAT KELOMPOK DIUBAH
     selectKategori.addEventListener('change', (e) => {
         const kategoriDipilih = e.target.value;
         
-        // Reset dropdown ruangan
         selectRuangan.innerHTML = '<option value="">-- Pilih Ruangan --</option>';
         tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 20px;">Silakan pilih Unit/Ruangan terlebih dahulu.</td></tr>';
 
@@ -63,31 +73,29 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        // Tentukan data mana yang mau dimunculkan
         let listRuangan = (kategoriDipilih === 'Farmasi') ? dataFarmasi : dataUnit;
 
         selectRuangan.disabled = false;
-        listRuangan.forEach(r => {
+        listRuangan.forEach((r, index) => {
             const opt = document.createElement('option');
-            opt.value = r.id;
+            // Value kita isi dengan index sementara, kita ambil UUID aslinya nanti saat submit
+            opt.value = index; 
             opt.textContent = r.nama;
-            opt.dataset.keyword = r.keyword; // Simpan kata kunci di sini
+            opt.dataset.nama = r.nama; // Simpan nama ruangan
+            opt.dataset.keyword = r.keyword; // Simpan keyword untuk filter pertanyaan
             selectRuangan.appendChild(opt);
         });
     });
 
-    // 3. RENDER TABEL PERTANYAAN SAAT RUANGAN DIPILIH
+    // 4. RENDER TABEL PERTANYAAN
     function renderPertanyaan(keywordFilter = '') {
         if (!keywordFilter) {
             tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 20px;">Silakan pilih Unit/Ruangan terlebih dahulu.</td></tr>';
             return;
         }
 
-        // Filter pertanyaan dari Supabase berdasarkan kata kunci
         const pertanyaanTersaring = semuaPertanyaan.filter(q => {
-            // Jika di database kolom default_ruangan kosong, kita anggap muncul di semua tempat (opsional, hapus baris ini jika tidak mau)
             if (!q.default_ruangan) return false; 
-            
             const ruanganDB = q.default_ruangan.toLowerCase();
             return ruanganDB.includes(keywordFilter.toLowerCase());
         });
@@ -125,14 +133,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         tbody.innerHTML = html;
     }
 
-    // 4. EVENT SAAT DROPDOWN RUANGAN SPESIFIK DIUBAH
+    // 5. EVENT SAAT DROPDOWN RUANGAN SPESIFIK DIUBAH
     selectRuangan.addEventListener('change', (e) => {
         const selectedOption = e.target.options[e.target.selectedIndex];
         const keyword = selectedOption.dataset.keyword || '';
         renderPertanyaan(keyword);
     });
 
-    // 5. EVENT DELEGATION RADIO S/TS
+    // 6. EVENT DELEGATION RADIO S/TS
     tbody.addEventListener('change', (e) => {
         if (e.target.type === 'radio' && e.target.name.startsWith('status_')) {
             const row = e.target.closest('tr');
@@ -151,7 +159,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // 6. HANDLE SUBMIT FORM
+    // 7. HANDLE SUBMIT FORM
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const btnSubmit = document.getElementById('btn-submit');
@@ -160,24 +168,32 @@ document.addEventListener('DOMContentLoaded', async () => {
         btnSubmit.textContent = 'Menyimpan...';
 
         const rows = document.querySelectorAll('.pertanyaan-row');
-        const ruanganId = document.getElementById('ruangan').value;
-
-        if (!ruanganId || rows.length === 0) {
+        const selectedOption = selectRuangan.options[selectRuangan.selectedIndex];
+        const namaRuanganDipilih = selectedOption.dataset.nama;
+        
+        if (!namaRuanganDipilih || rows.length === 0) {
             showAlert('Pilih Kelompok dan Ruangan terlebih dahulu, lalu pastikan ada pertanyaan.', 'warning');
             btnSubmit.disabled = false;
             btnSubmit.textContent = originalText;
             return;
         }
 
-        // UBAH ID DROPDOWN MANUAL MENJADI ID DATABASE YANG VALID
-        // Karena kita pakai hardcode 'depo', 'farklin', 'unit', kita harus cari ID asli di tabel 'ruangan'
-        // ATAU kita simpan saja ke database sebagai teks. 
-        // *Solusi teraman: Kita buat kolom 'ruangan_id' ini menerima teks, 
-        // ATAU kita insert 'ruangan_id' = null dan simpan nama ruangannya di field lain (jika ada).
-        
-        // KARENA TERBATAS KOLOM, KITA GUNAKAN ID DROPDOWN MANUAL. 
-        // (Pastikan kolom 'ruangan_id' di tabel supervisi Supabase tipenya TEXT, bukan UUID/FK).
-        
+        // CARI UUID ASLI DARI DATABASE BERDASARKAN NAMA RUANGAN YANG DIPILIH
+        // Pencarian menggunakan .includes() agar lebih fleksibel (misal di DB "Depo Farmasi", di form "Depo Farmasi / Gudang Farmasi")
+        const ruanganDB = semuaRuanganDB.find(r => 
+            r.nama_ruangan.toLowerCase().includes(namaRuanganDipilih.toLowerCase().split(' ')[0]) || 
+            namaRuanganDipilih.toLowerCase().includes(r.nama_ruangan.toLowerCase().split(' ')[0])
+        );
+
+        if (!ruanganDB) {
+            showAlert('Data ruangan ini belum ada di database Supabase. Harap tambahkan nama ruangan yang sesuai di tabel "ruangan".', 'error');
+            btnSubmit.disabled = false;
+            btnSubmit.textContent = originalText;
+            return;
+        }
+
+        const ruanganId = ruanganDB.id; // Ini UUID yang valid!
+
         let isValid = true;
         let firstInvalidRow = null;
         const jawabanArray = [];
@@ -217,8 +233,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const headerData = {
             tanggal: document.getElementById('tanggal').value,
             jam: document.getElementById('jam').value,
-            // Menyimpan ID manual atau nama ruangan langsung
-            ruangan_id: ruanganId, 
+            ruangan_id: ruanganId, // UUID Asli
             kategori_risiko: document.getElementById('kategori_risiko').value,
             apoteker_supervisor_nama: document.getElementById('supervisor').value,
             penanggung_jawab_nama: document.getElementById('pj').value,
@@ -250,7 +265,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // 7. INISIALISASI
+    // 8. INISIALISASI
+    await loadDataRuanganDB(); // Load data ruangan untuk UUID
     await loadMasterPertanyaan();
     renderPertanyaan('');
 });
