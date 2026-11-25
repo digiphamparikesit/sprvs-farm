@@ -19,88 +19,98 @@
 
         <!-- AREA CETAK PDF -->
         <div id="print-area" style="display: none;">
-            <!-- KOP SURAT -->
-            <div class="kop-surat">
-                <img src="assets/img/logo-rsud.png" alt="Logo" class="logo-kop">
-                <div class="kop-text">
-                    <h3>PEMERINTAH KABUPATEN KUTAI KARTANEGARA</h3>
-                    <h3>DINAS KESEHATAN</h3>
-                    <h3>UNIT ORGANISASI BERSIFAT KHUSUS</h3>
-                    <h2>RUMAH SAKIT UMUM DAERAH AJI MUHAMMAD PARIKESIT</h2>
-                    <p>Jalan Ratu Agung Nomor 1, Teluk Dalam, Tenggarong Seberang, Kutai Kartanegara, Kalimantan Timur 75572</p>
-                    <p>Telepon (0541) 661015, Laman: www.rsamp.kukarkab.go.id, Pos-el: rsudamparikesit@yahoo.com</p>
-                </div>
-            </div>
-            <hr class="garis-kop">
-
-            <h4 class="judul-laporan">CHECKLIST SUPERVISI INSTALASI FARMASI</h4>
-
-            <!-- INFO HEADER -->
-            <table class="info-table">
-                <tr>
-                    <td width="18%">Unit / Ruangan</td><td width="32%">: <span id="pdf-ruangan"></span></td>
-                    <td width="18%">Tanggal dan Jam</td><td>: <span id="pdf-tanggal"></span></td>
-                </tr>
-                <tr>
-                    <td>Apoteker Supervisor</td><td>: <span id="pdf-supervisor"></span></td>
-                    <td>Penanggung Jawab Unit</td><td>: <span id="pdf-pj"></span></td>
-                </tr>
-                <tr>
-                    <td>Kategori Risiko Lokasi</td><td>: <span id="pdf-risiko"></span></td>
-                    <td>Metode dan Sampel</td><td>: <span id="pdf-metode"></span></td>
-                </tr>
-            </table>
-
-            <!-- TABEL CHECKLIST (8 Kolom) -->
-            <table class="table-pdf" border="1">
-                <thead>
-                    <tr>
-                        <th width="4%">No</th>
-                        <th width="16%">Objek Pemeriksaan</th>
-                        <th width="8%">Acuan</th>
-                        <th width="28%">Pengamatan di Lapangan</th>
-                        <th width="8%">S / TS</th>
-                        <th width="20%">Catatan/nomor temuan</th>
-                        <th width="6%">Kategori</th>
-                        <th width="10%" style="display: none;">Ruangan/Depo</th>
-                    </tr>
-                </thead>
-                <tbody id="pdf-tbody">
-                    <!-- Diisi JS -->
-                </tbody>
-            </table>
-
-            <!-- DAFTAR LOKASI SUPERVISI -->
-            <div class="lokasi-supervisi">
-                <p><strong>Lokasi supervisi :</strong></p>
-                <div class="lokasi-grid">
-                    <div>1. Gudang farmasi</div>
-                    <div>6. Kamar operasi</div>
-                    <div>2. Depo farmasi</div>
-                    <div>7. Poliklinik</div>
-                    <div>3. Ruang rawat inap</div>
-                    <div>8. Ruang Tindakan</div>
-                    <div>4. IGD</div>
-                    <div>9. Instalasi penunjang</div>
-                    <div>5. ICU / NICU / PICU</div>
-                    <div>10. Ambulan</div>
-                </div>
-            </div>
-
-            <!-- TANDA TANGAN -->
-            <div class="ttd-container">
-                <div class="ttd-box">
-                    <p>Penanggung Jawab Unit</p>
-                    <div class="ttd-space"></div>
-                    <p>(...........................................)</p>
-                </div>
-                <div class="ttd-box">
-                    <p>Apoteker Supervisor</p>
-                    <div class="ttd-space"></div>
-                    <p>(...........................................)</p>
-                </div>
-            </div>
-        </div>
-    </div>
+    <table class="table-pdf" border="1" style="border-collapse: collapse; width: 100%;">
+        <!-- THEAD: Ini akan otomatis diulang di setiap halaman PDF -->
+        <thead>
+            <!-- Baris 1: Kop Surat -->
+            <tr>
+                <td colspan="7" style="border: none; padding-bottom: 10px;">
+                    <div class="kop-surat">
+                        <img src="assets/img/logo.png" alt="Logo" class="logo-kop">
+                        <div class="kop-text">
+                            <h3>PEMERINTAH KABUPATEN KUTAI KARTANEGARA</h3>
+                            <h3>DINAS KESEHATAN</h3>
+                            <h3>UNIT ORGANISASI BERSIFAT KHUSUS</h3>
+                            <h2>RUMAH SAKIT UMUM DAERAH AJI MUHAMMAD PARIKESIT</h2>
+                            <p>Jalan Ratu Agung Nomor 1, Teluk Dalam, Tenggarong Seberang, Kutai Kartanegara, Kalimantan Timur 75572</p>
+                            <p>Telepon (0541) 661015, Laman: www.rsamp.kukarkab.go.id, Pos-el: rsudamparikesit@yahoo.com</p>
+                        </div>
+                    </div>
+                    <hr class="garis-kop" style="border: 1.5px solid black; margin-bottom: 15px;">
+                    <h4 class="judul-laporan" style="text-align: center; text-decoration: underline; margin-bottom: 15px;">CHECKLIST SUPERVISI INSTALASI FARMASI</h4>
+                </td>
+            </tr>
+            <!-- Baris 2: Info Header (Hanya muncul di halaman pertama) -->
+            <tr class="info-header-row">
+                <td colspan="7" style="border: none; padding-bottom: 15px;">
+                    <table class="info-table" style="width: 100%; border: none;">
+                        <tr>
+                            <td width="18%">Unit / Ruangan</td><td width="32%">: <span id="pdf-ruangan"></span></td>
+                            <td width="18%">Tanggal dan Jam</td><td>: <span id="pdf-tanggal"></span></td>
+                        </tr>
+                        <tr>
+                            <td>Apoteker Supervisor</td><td>: <span id="pdf-supervisor"></span></td>
+                            <td>Penanggung Jawab Unit</td><td>: <span id="pdf-pj"></span></td>
+                        </tr>
+                        <tr>
+                            <td>Kategori Risiko Lokasi</td><td>: <span id="pdf-risiko"></span></td>
+                            <td>Metode dan Sampel</td><td>: <span id="pdf-metode"></span></td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <!-- Baris 3: Judul Kolom Tabel -->
+            <tr>
+                <th width="4%">No</th>
+                <th width="16%">Objek Pemeriksaan</th>
+                <th width="8%">Acuan</th>
+                <th width="28%">Pengamatan di Lapangan</th>
+                <th width="8%">S / TS</th>
+                <th width="20%">Catatan/nomor temuan</th>
+                <th width="6%">Kategori</th>
+            </tr>
+        </thead>
+        
+        <!-- TBODY: Ini adalah isi datanya -->
+        <tbody id="pdf-tbody">
+            <!-- Diisi JS -->
+        </tbody>
+        
+        <!-- TFOOT: Bagian Tanda Tangan (Akan muncul di halaman terakhir) -->
+        <tfoot>
+            <tr>
+                <td colspan="7" style="border: none;">
+                    <div class="lokasi-supervisi" style="margin-top: 15px; font-size: 10px;">
+                        <p><strong>Lokasi supervisi :</strong></p>
+                        <div class="lokasi-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2px;">
+                            <div>1. Gudang farmasi</div>
+                            <div>6. Kamar operasi</div>
+                            <div>2. Depo farmasi</div>
+                            <div>7. Poliklinik</div>
+                            <div>3. Ruang rawat inap</div>
+                            <div>8. Ruang Tindakan</div>
+                            <div>4. IGD</div>
+                            <div>9. Instalasi penunjang</div>
+                            <div>5. ICU / NICU / PICU</div>
+                            <div>10. Ambulan</div>
+                        </div>
+                    </div>
+                    <div class="ttd-container" style="display: flex; justify-content: space-between; margin-top: 30px; font-size: 12px;">
+                        <div class="ttd-box" style="text-align: center; width: 40%;">
+                            <p>Penanggung Jawab Unit</p>
+                            <div class="ttd-space" style="height: 60px;"></div>
+                            <p>(...........................................)</p>
+                        </div>
+                        <div class="ttd-box" style="text-align: center; width: 40%;">
+                            <p>Apoteker Supervisor</p>
+                            <div class="ttd-space" style="height: 60px;"></div>
+                            <p>(...........................................)</p>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        </tfoot>
+    </table>
+</div>
 </body>
 </html>
