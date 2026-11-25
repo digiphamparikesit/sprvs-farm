@@ -76,36 +76,59 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     document.getElementById('pdf-tbody').innerHTML = tbodyHtml;
 
-        // 5. Tombol Cetak
+            // 5. Tombol Cetak
     document.getElementById('btn-cetak').addEventListener('click', () => {
         const element = document.getElementById('print-area');
-        element.style.display = 'block';
+        element.style.display = 'block'; // Tampilkan sementara
 
-        const opt = {
-            margin:       [10, 10, 10, 10], // Margin kiri, atas, kanan, bawah (mm)
-            filename:     `Supervisi_Farmasi_${header.ruangan.nama_ruangan}_${header.tanggal}.pdf`,
-            image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2, useCORS: true, scrollY: 0 },
-            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' },
-            // KITA HAPUS PAGEBREAK KAKU DAN GUNAKAN MODE CSS
-            pagebreak:    { mode: ['css', 'legacy'] } 
-        };
+        // Ambil area khusus untuk dijadikan Header berulang
+        const headerElement = document.querySelector('.kop-surat');
+        const judulElement = document.querySelector('.judul-laporan');
+        
+        // Gabungkan Kop Surat dan Judul ke dalam satu div sementara
+        const tempHeader = document.createElement('div');
+        tempHeader.style.width = '1100px'; // Sesuaikan dengan lebar landscape A4
+        tempHeader.style.background = 'white';
+        tempHeader.style.padding = '20px';
+        tempHeader.appendChild(headerElement.cloneNode(true));
+        
+        const garis = document.createElement('hr');
+        garis.style.border = '2px solid black';
+        garis.style.margin = '10px 0';
+        tempHeader.appendChild(garis);
+        tempHeader.appendChild(judulElement.cloneNode(true));
 
-        // Tambahkan CSS sementara agar header tabel otomatis diulang
-        const style = document.createElement('style');
-        style.innerHTML = `
-            @media print {
-                thead { display: table-header-group; }
-                tr { page-break-inside: avoid; }
-            }
-            .table-pdf th { background-color: #e0e0e0; }
-            .table-pdf td, .table-pdf th { padding: 4px; font-size: 10px; }
-        `;
-        document.head.appendChild(style);
+        // Gunakan html2canvas untuk mengubah Header menjadi Gambar Base64
+        html2canvas(tempHeader, { scale: 2 }).then(canvas => {
+            const headerImgData = canvas.toDataURL('image/jpeg');
+            const headerHeight = (canvas.height * 190) / canvas.width; // Kalkulasi tinggi di PDF
 
-        html2pdf().set(opt).from(element).save().then(() => {
-            element.style.display = 'none';
-            document.head.removeChild(style); // Bersihkan style setelah selesai
+            const opt = {
+                margin:       [10, 10, 10, 10],
+                filename:     `Supervisi_Farmasi_${header.ruangan.nama_ruangan}_${header.tanggal}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' },
+                pagebreak:    { mode: ['css', 'legacy'] }
+            };
+
+            // Jalankan html2pdf dengan callback untuk menyisipkan header
+            html2pdf().set(opt).from(element).toPdf().get('pdf').then((pdf) => {
+                const totalPages = pdf.internal.getNumberOfPages();
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                
+                // Loop setiap halaman, tempelkan Header di atasnya
+                for (let i = 1; i <= totalPages; i++) {
+                    pdf.setPage(i);
+                    // Tempel gambar header (margin kiri 10, atas 10, lebar menyesuaikan)
+                    pdf.addImage(headerImgData, 'JPEG', 10, 10, pageWidth - 20, headerHeight);
+                    
+                    // Opsional: Tambahkan nomor halaman di bawah
+                    pdf.setFontSize(10);
+                    pdf.text(`Halaman ${i} dari ${totalPages}`, pageWidth - 30, pdf.internal.pageSize.getHeight() - 10);
+                }
+            }).save().then(() => {
+                element.style.display = 'none';
+            });
         });
     });
-});
