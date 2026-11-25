@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Form Supervisi - RSUD AM Parikesit</title>
+
+     <!-- PROTEKSI LOGIN - di paling atas agar redirect secepat mungkin -->
+    <script>
+        if (sessionStorage.getItem('isLoggedIn') !== 'true') {
+            window.location.href = 'login.html';
+        }
+    </script>
+    
     <link rel="stylesheet" href="assets/css/style.css">
     
     <!-- Font Awesome untuk Ikon (Tombol Kembali) -->
