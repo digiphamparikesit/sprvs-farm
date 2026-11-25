@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         semuaPertanyaan = data || [];
     }
 
-    // 3. RENDER DROPDOWN RUANGAN BERDASARKAN KATEGORI
+        // 3. RENDER DROPDOWN RUANGAN BERDASARKAN KATEGORI (LOGIKA KATA KUNCI)
     selectKategori.addEventListener('change', (e) => {
         const kategoriDipilih = e.target.value;
         
@@ -54,11 +54,34 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        // Filter ruangan berdasarkan kategori
-        const ruanganTersaring = semuaRuangan.filter(r => r.kategori === kategoriDipilih);
+        // Filter ruangan menggunakan kata kunci (keyword matching)
+        const ruanganTersaring = semuaRuangan.filter(r => {
+            const nama = r.nama_ruangan.toLowerCase();
+            
+            if (kategoriDipilih === 'Farmasi') {
+                // Jika pilih Farmasi, cari yang ada kata depo, gudang, atau farklin
+                return nama.includes('depo') || nama.includes('gudang') || nama.includes('farklin');
+            } else if (kategoriDipilih === 'Unit') {
+                // Jika pilih Unit, cari yang ada kata kunci penunjang/unit (dan pastikan BUKAN farmasi)
+                const isFarmasi = nama.includes('depo') || nama.includes('gudang') || nama.includes('farklin');
+                const isUnit = nama.includes('laundry') || 
+                               nama.includes('gizi') || 
+                               nama.includes('pemulasaran') || 
+                               nama.includes('cssd') || 
+                               nama.includes('lab') || 
+                               nama.includes('unit') ||
+                               nama.includes('rawat') ||
+                               nama.includes('poli') ||
+                               nama.includes('igd');
+                               
+                return !isFarmasi && isUnit;
+            }
+            return false;
+        });
 
+        // Tampilkan ke dropdown
         if (ruanganTersaring.length === 0) {
-            selectRuangan.innerHTML = '<option value="">-- Tidak ada ruangan --</option>';
+            selectRuangan.innerHTML = '<option value="">-- Tidak ada ruangan yang cocok --</option>';
             selectRuangan.disabled = true;
         } else {
             selectRuangan.disabled = false;
