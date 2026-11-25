@@ -6,11 +6,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const selectRuangan = document.getElementById('ruangan');
     const form = document.getElementById('form-supervisi');
 
-    let semuaPertanyaan = []; // Menyimpan data pertanyaan dari database
+    let semuaPertanyaan = [];
 
-    // ============================================================
     // 1. LOAD RUANGAN
-    // ============================================================
     async function loadRuangan() {
         const { data, error } = await supabase
             .from('ruangan')
@@ -28,14 +26,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             const opt = document.createElement('option');
             opt.value = r.id;
             opt.textContent = r.nama_ruangan;
-            opt.dataset.nama = r.nama_ruangan; // Simpan nama untuk filter
+            opt.dataset.nama = r.nama_ruangan;
             selectRuangan.appendChild(opt);
         });
     }
 
-    // ============================================================
-    // 2. LOAD SEMUA MASTER PERTANYAAN (belum dirender)
-    // ============================================================
+    // 2. LOAD SEMUA MASTER PERTANYAAN
     async function loadMasterPertanyaan() {
         const { data, error } = await supabase
             .from('master_pertanyaan')
@@ -51,17 +47,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         semuaPertanyaan = data || [];
     }
 
-    // ============================================================
-    // 3. RENDER TABEL BERDASARKAN RUANGAN YANG DIPILIH
-    // ============================================================
+    // 3. RENDER TABEL
     function renderPertanyaan(filterRuangan = '') {
         if (!filterRuangan) {
             tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 20px;">Silakan pilih Unit/Ruangan terlebih dahulu untuk menampilkan pertanyaan.</td></tr>';
             return;
         }
 
-        // Filter: tampilkan jika default_ruangan kosong (berlaku semua)
-        // atau mengandung nama ruangan yang dipilih (case-insensitive)
         const pertanyaanTersaring = semuaPertanyaan.filter(q => {
             if (!q.default_ruangan) return true;
             const ruanganDB = q.default_ruangan.toLowerCase();
@@ -105,15 +97,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </tr>
             `;
         });
-
         tbody.innerHTML = html;
-        // Event delegation dipasang sekali di bawah, tidak perlu attachRadioEvents()
     }
 
-    // ============================================================
-    // 4. EVENT DELEGATION UNTUK RADIO S/TS
-    //    (dipasang SEKALI, tetap bekerja walau tbody di-render ulang)
-    // ============================================================
+    // 4. EVENT DELEGATION RADIO S/TS
     tbody.addEventListener('change', (e) => {
         if (e.target.type === 'radio' && e.target.name.startsWith('status_')) {
             const row = e.target.closest('tr');
@@ -133,18 +120,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // ============================================================
-    // 5. EVENT: DROPDOWN RUANGAN DIUBAH
-    // ============================================================
+    // 5. DROPDOWN RUANGAN DIUBAH
     selectRuangan.addEventListener('change', (e) => {
         const selectedOption = e.target.options[e.target.selectedIndex];
         const namaRuangan = selectedOption.dataset.nama || '';
         renderPertanyaan(namaRuangan);
     });
 
-    // ============================================================
     // 6. HANDLE SUBMIT FORM
-    // ============================================================
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
 
@@ -153,7 +136,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         btnSubmit.disabled = true;
         btnSubmit.textContent = 'Menyimpan...';
 
-        // --- 6a. Validasi: minimal ada pertanyaan ---
         const rows = document.querySelectorAll('.pertanyaan-row');
         if (rows.length === 0) {
             showAlert('Tidak ada pertanyaan yang bisa disimpan. Pilih ruangan terlebih dahulu.', 'warning');
@@ -162,7 +144,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        // --- 6b. Validasi: ruangan wajib dipilih ---
         const ruanganId = document.getElementById('ruangan').value;
         if (!ruanganId) {
             showAlert('Pilih Unit/Ruangan terlebih dahulu!', 'warning');
@@ -171,7 +152,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        // --- 6c. Validasi setiap baris + kumpulkan jawaban ---
         let isValid = true;
         let firstInvalidRow = null;
         const jawabanArray = [];
@@ -179,7 +159,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         rows.forEach(row => {
             const qId = row.dataset.id;
             const selectedRadio = row.querySelector(`input[name="status_${qId}"]:checked`);
-            // ✅ FIX BUG #1: textarea, bukan input
+            
+            // PERBAIKAN: Gunakan backtick (`) bukan kutip biasa (')
             const catatanInput = row.querySelector(`textarea[name="catatan_${qId}"]`);
 
             if (!selectedRadio) {
@@ -196,7 +177,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 jawabanArray.push({
                     pertanyaan_id: qId,
                     status: selectedRadio.value,
-                    // ✅ FIX BUG #9: null untuk status S (kolom nullable di Supabase)
                     catatan_temuan: selectedRadio.value === 'TS' ? catatanInput.value.trim() : null
                 });
             }
@@ -210,7 +190,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        // --- 6d. Susun data header ---
         const headerData = {
             tanggal: document.getElementById('tanggal').value,
             jam: document.getElementById('jam').value,
@@ -222,9 +201,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             sampel: document.getElementById('sampel').value
         };
 
-        // --- 6e. Insert ke Supabase ---
         try {
-            // Insert header
             const { data: headerInserted, error: errHeader } = await supabase
                 .from('supervisi')
                 .insert([headerData])
@@ -233,7 +210,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (errHeader) throw new Error('Header: ' + errHeader.message);
 
-            // Insert detail
             const detailData = jawabanArray.map(j => ({
                 supervisi_id: headerInserted.id,
                 ...j
@@ -244,7 +220,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 .insert(detailData);
 
             if (errDetail) {
-                // Rollback: hapus header yang sudah ter-insert
                 await supabase.from('supervisi').delete().eq('id', headerInserted.id);
                 throw new Error('Detail: ' + errDetail.message);
             }
@@ -261,10 +236,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // ============================================================
     // 7. INISIALISASI
-    // ============================================================
     await loadRuangan();
     await loadMasterPertanyaan();
-    renderPertanyaan(''); // tampilkan pesan "pilih ruangan dulu"
+    renderPertanyaan('');
 });
