@@ -5,18 +5,96 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Form Supervisi - RSUD AM Parikesit</title>
     <link rel="stylesheet" href="assets/css/style.css">
+    
+    <!-- Font Awesome untuk Ikon (Tombol Kembali) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* === CSS TAMBAHAN UNTUK STICKY HEADER === */
+        body {
+            /* Memberi jarak agar saat di-scroll, konten tidak tertutup header */
+            padding-top: 90px; 
+        }
+
+        .header-sticky {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: #ffffff;
+            z-index: 1000; /* Memastikan header selalu di atas konten lain */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); /* Efek bayangan */
+            padding: 10px 20px;
+            border-bottom: 2px solid #2c3e50;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-sizing: border-box; /* Agar padding tidak menambah lebar */
+        }
+
+        /* Container untuk logo dan judul di dalam header */
+        .header-left {
+            display: flex; 
+            align-items: center;
+            max-width: 1200px; /* Menyesuaikan dengan lebar container Anda */
+        }
+
+        .header-left .logo {
+            width: 50px; /* Sedikit diperkecil agar proporsional saat sticky */
+            margin-right: 15px;
+        }
+
+        .header-left .header-text h1 {
+            font-size: 1.1rem;
+            margin: 0;
+            color: #2c3e50;
+        }
+
+        .header-left .header-text p {
+            font-size: 0.85rem;
+            margin: 0;
+            color: #666;
+        }
+
+        /* Penyesuaian tombol kembali */
+        .btn-kembali {
+            text-decoration: none;
+            background-color: #95a5a6;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            transition: 0.3s;
+            white-space: nowrap; /* Mencegah teks turun ke bawah */
+        }
+        
+        .btn-kembali:hover {
+            background-color: #7f8c8d;
+        }
+    </style>
+
     <script type="module" src="assets/js/supervisi.js"></script>
 </head>
 <body>
-    <div class="container">
-        <header class="header">
+
+    <!-- HEADER STICKY (Diletakkan di luar .container agar full width) -->
+    <header class="header-sticky">
+        <div class="header-left">
             <img src="assets/img/logo.png" alt="Logo RSUD" class="logo">
             <div class="header-text">
                 <h1>FORMULIR SUPERVISI INSTALASI FARMASI</h1>
                 <p>RSUD Aji Muhammad Parikesit</p>
             </div>
-        </header>
+        </div>
+        
+        <!-- TOMBOL KEMBALI -->
+        <a href="index.html" class="btn-kembali">
+            <i class="fas fa-arrow-left"></i> Kembali ke Dashboard
+        </a>
+    </header>
 
+    <!-- KONTEN UTAMA -->
+    <div class="container">
         <form id="form-supervisi">
             <!-- BAGIAN 1: INFORMASI UMUM -->
             <fieldset>
