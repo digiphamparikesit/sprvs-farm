@@ -1,243 +1,185 @@
-import { supabase } from './supabase-client.js';
-import { showAlert } from './utils.js';
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form Supervisi - RSUD AM Parikesit</title>
 
-document.addEventListener('DOMContentLoaded', async () => {
-    const tbody = document.getElementById('tbody-checklist');
-    const selectRuangan = document.getElementById('ruangan');
-    const form = document.getElementById('form-supervisi');
-
-    let semuaPertanyaan = [];
-
-    // 1. LOAD RUANGAN
-    async function loadRuangan() {
-        const { data, error } = await supabase
-            .from('ruangan')
-            .select('*')
-            .order('nama_ruangan');
-
-        if (error) {
-            console.error('Gagal memuat ruangan:', error);
-            showAlert('Gagal memuat daftar ruangan: ' + error.message, 'error');
-            return;
+     <!-- PROTEKSI LOGIN - di paling atas agar redirect secepat mungkin -->
+    <script>
+        if (sessionStorage.getItem('isLoggedIn') !== 'true') {
+            window.location.href = 'login.html';
+        }
+    </script>
+    
+    <link rel="stylesheet" href="assets/css/style.css">
+    
+    <!-- Font Awesome untuk Ikon (Tombol Kembali) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* === CSS TAMBAHAN UNTUK STICKY HEADER === */
+        body {
+            /* Memberi jarak agar saat di-scroll, konten tidak tertutup header */
+            padding-top: 90px; 
         }
 
-        selectRuangan.innerHTML = '<option value="">-- Pilih Ruangan --</option>';
-        data.forEach(r => {
-            const opt = document.createElement('option');
-            opt.value = r.id;
-            opt.textContent = r.nama_ruangan;
-            opt.dataset.nama = r.nama_ruangan;
-            selectRuangan.appendChild(opt);
-        });
-    }
-
-    // 2. LOAD SEMUA MASTER PERTANYAAN
-    async function loadMasterPertanyaan() {
-        const { data, error } = await supabase
-            .from('master_pertanyaan')
-            .select('*')
-            .order('no_urut', { ascending: true })
-            .order('id', { ascending: true });
-
-        if (error) {
-            console.error('Gagal memuat pertanyaan:', error);
-            showAlert('Gagal memuat pertanyaan: ' + error.message, 'error');
-            return;
-        }
-        semuaPertanyaan = data || [];
-    }
-
-    // 3. RENDER TABEL
-    function renderPertanyaan(filterRuangan = '') {
-        if (!filterRuangan) {
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 20px;">Silakan pilih Unit/Ruangan terlebih dahulu untuk menampilkan pertanyaan.</td></tr>';
-            return;
+        .header-sticky {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: #ffffff;
+            z-index: 1000; /* Memastikan header selalu di atas konten lain */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); /* Efek bayangan */
+            padding: 10px 20px;
+            border-bottom: 2px solid #2c3e50;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-sizing: border-box; /* Agar padding tidak menambah lebar */
         }
 
-        const pertanyaanTersaring = semuaPertanyaan.filter(q => {
-            if (!q.default_ruangan) return true;
-            const ruanganDB = q.default_ruangan.toLowerCase();
-            const ruanganDipilih = filterRuangan.toLowerCase();
-            return ruanganDB.includes(ruanganDipilih) || ruanganDipilih.includes(ruanganDB);
-        });
-
-        if (pertanyaanTersaring.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 20px;">Tidak ada pertanyaan spesifik untuk ruangan ini.</td></tr>';
-            return;
+        /* Container untuk logo dan judul di dalam header */
+        .header-left {
+            display: flex; 
+            align-items: center;
+            max-width: 1200px; /* Menyesuaikan dengan lebar container Anda */
         }
 
-        let html = '';
-        let lastKelompok = '';
-
-        pertanyaanTersaring.forEach((q) => {
-            if (q.kelompok !== lastKelompok) {
-                html += `<tr class="kelompok-header"><td colspan="8"><strong>${q.kelompok}</strong></td></tr>`;
-                lastKelompok = q.kelompok;
-            }
-
-            html += `
-                <tr class="pertanyaan-row" data-id="${q.id}">
-                    <td class="text-center">${q.no_urut}</td>
-                    <td>${q.objek_pemeriksaan}</td>
-                    <td class="text-center">${q.acuan}</td>
-                    <td>${q.pengamatan_dilapangan}</td>
-                    <td class="text-center">
-                        <label class="radio-label">
-                            <input type="radio" name="status_${q.id}" value="S"> S
-                        </label>
-                        <label class="radio-label">
-                            <input type="radio" name="status_${q.id}" value="TS"> TS
-                        </label>
-                    </td>
-                    <td>
-                        <textarea class="input-catatan" name="catatan_${q.id}" rows="2" placeholder="Wajib diisi jika TS" disabled></textarea>
-                    </td>
-                    <td class="text-center">${q.kategori}</td>
-                    <td class="text-center">${q.default_ruangan || '-'}</td>
-                </tr>
-            `;
-        });
-        tbody.innerHTML = html;
-    }
-
-    // 4. EVENT DELEGATION RADIO S/TS
-    tbody.addEventListener('change', (e) => {
-        if (e.target.type === 'radio' && e.target.name.startsWith('status_')) {
-            const row = e.target.closest('tr');
-            const catatanInput = row.querySelector('.input-catatan');
-
-            if (e.target.value === 'TS') {
-                catatanInput.disabled = false;
-                catatanInput.required = true;
-                catatanInput.focus();
-                row.style.backgroundColor = '#fff3cd';
-            } else {
-                catatanInput.disabled = true;
-                catatanInput.required = false;
-                catatanInput.value = '';
-                row.style.backgroundColor = '';
-            }
-        }
-    });
-
-    // 5. DROPDOWN RUANGAN DIUBAH
-    selectRuangan.addEventListener('change', (e) => {
-        const selectedOption = e.target.options[e.target.selectedIndex];
-        const namaRuangan = selectedOption.dataset.nama || '';
-        renderPertanyaan(namaRuangan);
-    });
-
-    // 6. HANDLE SUBMIT FORM
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-
-        const btnSubmit = document.getElementById('btn-submit');
-        const originalText = btnSubmit.textContent;
-        btnSubmit.disabled = true;
-        btnSubmit.textContent = 'Menyimpan...';
-
-        const rows = document.querySelectorAll('.pertanyaan-row');
-        if (rows.length === 0) {
-            showAlert('Tidak ada pertanyaan yang bisa disimpan. Pilih ruangan terlebih dahulu.', 'warning');
-            btnSubmit.disabled = false;
-            btnSubmit.textContent = originalText;
-            return;
+        .header-left .logo {
+            width: 50px; /* Sedikit diperkecil agar proporsional saat sticky */
+            margin-right: 15px;
         }
 
-        const ruanganId = document.getElementById('ruangan').value;
-        if (!ruanganId) {
-            showAlert('Pilih Unit/Ruangan terlebih dahulu!', 'warning');
-            btnSubmit.disabled = false;
-            btnSubmit.textContent = originalText;
-            return;
+        .header-left .header-text h1 {
+            font-size: 1.1rem;
+            margin: 0;
+            color: #2c3e50;
         }
 
-        let isValid = true;
-        let firstInvalidRow = null;
-        const jawabanArray = [];
-
-        rows.forEach(row => {
-            const qId = row.dataset.id;
-            const selectedRadio = row.querySelector(`input[name="status_${qId}"]:checked`);
-            
-            // PERBAIKAN: Gunakan backtick (`) bukan kutip biasa (')
-            const catatanInput = row.querySelector(`textarea[name="catatan_${qId}"]`);
-
-            if (!selectedRadio) {
-                isValid = false;
-                row.style.backgroundColor = '#f8d7da';
-                if (!firstInvalidRow) firstInvalidRow = row;
-            } else if (selectedRadio.value === 'TS' && (!catatanInput || catatanInput.value.trim() === '')) {
-                isValid = false;
-                row.style.backgroundColor = '#f8d7da';
-                if (!firstInvalidRow) firstInvalidRow = row;
-                if (catatanInput) catatanInput.focus();
-            } else {
-                row.style.backgroundColor = '';
-                jawabanArray.push({
-                    pertanyaan_id: qId,
-                    status: selectedRadio.value,
-                    catatan_temuan: selectedRadio.value === 'TS' ? catatanInput.value.trim() : null
-                });
-            }
-        });
-
-        if (!isValid) {
-            showAlert('Harap jawab semua pertanyaan (S/TS) dan isi catatan jika memilih TS.', 'warning');
-            if (firstInvalidRow) firstInvalidRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            btnSubmit.disabled = false;
-            btnSubmit.textContent = originalText;
-            return;
+        .header-left .header-text p {
+            font-size: 0.85rem;
+            margin: 0;
+            color: #666;
         }
 
-        const headerData = {
-            tanggal: document.getElementById('tanggal').value,
-            jam: document.getElementById('jam').value,
-            ruangan_id: ruanganId,
-            kategori_risiko: document.getElementById('kategori_risiko').value,
-            apoteker_supervisor_nama: document.getElementById('supervisor').value,
-            penanggung_jawab_nama: document.getElementById('pj').value,
-            metode: document.getElementById('metode').value,
-            sampel: document.getElementById('sampel').value
-        };
-
-        try {
-            const { data: headerInserted, error: errHeader } = await supabase
-                .from('supervisi')
-                .insert([headerData])
-                .select()
-                .single();
-
-            if (errHeader) throw new Error('Header: ' + errHeader.message);
-
-            const detailData = jawabanArray.map(j => ({
-                supervisi_id: headerInserted.id,
-                ...j
-            }));
-
-            const { error: errDetail } = await supabase
-                .from('supervisi_detail')
-                .insert(detailData);
-
-            if (errDetail) {
-                await supabase.from('supervisi').delete().eq('id', headerInserted.id);
-                throw new Error('Detail: ' + errDetail.message);
-            }
-
-            showAlert('Data supervisi berhasil disimpan!', 'success');
-            window.location.href = `verifikasi.html?id=${headerInserted.id}`;
-
-        } catch (error) {
-            console.error('DETAIL ERROR:', error);
-            showAlert('Gagal menyimpan data: ' + (error.message || 'Terjadi kesalahan tidak diketahui'), 'error');
-        } finally {
-            btnSubmit.disabled = false;
-            btnSubmit.textContent = originalText;
+        /* Penyesuaian tombol kembali */
+        .btn-kembali {
+            text-decoration: none;
+            background-color: #95a5a6;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            transition: 0.3s;
+            white-space: nowrap; /* Mencegah teks turun ke bawah */
         }
-    });
+        
+        .btn-kembali:hover {
+            background-color: #7f8c8d;
+        }
+    </style>
 
-    // 7. INISIALISASI
-    await loadRuangan();
-    await loadMasterPertanyaan();
-    renderPertanyaan('');
-});
+    <script type="module" src="assets/js/supervisi.js"></script>
+</head>
+<body>
+
+    <!-- HEADER STICKY (Diletakkan di luar .container agar full width) -->
+    <header class="header-sticky">
+        <div class="header-left">
+            <img src="assets/img/logo.png" alt="Logo RSUD" class="logo">
+            <div class="header-text">
+                <h1>FORMULIR SUPERVISI INSTALASI FARMASI</h1>
+                <p>RSUD Aji Muhammad Parikesit</p>
+            </div>
+        </div>
+        
+        <!-- TOMBOL KEMBALI -->
+        <a href="index.html" class="btn-kembali">
+            <i class="fas fa-arrow-left"></i> Kembali ke Dashboard
+        </a>
+    </header>
+
+    <!-- KONTEN UTAMA -->
+    <div class="container">
+        <form id="form-supervisi">
+            <!-- BAGIAN 1: INFORMASI UMUM -->
+            <fieldset>
+                <legend>Informasi Supervisi</legend>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label for="tanggal">Tanggal</label>
+                        <input type="date" id="tanggal" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="jam">Jam</label>
+                        <input type="time" id="jam" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="ruangan">Unit / Ruangan</label>
+                        <select id="ruangan" required>
+                            <option value="">-- Pilih Ruangan --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="kategori_risiko">Kategori Risiko Lokasi</label>
+                        <select id="kategori_risiko" required>
+                            <option value="Tinggi">[5] Tinggi</option>
+                            <option value="Sedang">[3-4] Sedang</option>
+                            <option value="Rendah">[1-2] Rendah</option>
+                            <option value="Insidental">Insidental</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="supervisor">Apoteker Supervisor</label>
+                        <input type="text" id="supervisor" placeholder="Nama Apoteker" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="pj">Penanggung Jawab Unit</label>
+                        <input type="text" id="pj" placeholder="Nama PJ Ruangan" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="metode">Metode</label>
+                        <input type="text" id="metode" placeholder="Observasi / wawancara / telaah dokumen" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="sampel">Sampel</label>
+                        <input type="text" id="sampel" placeholder="Jumlah/Item sampel" required>
+                    </div>
+                </div>
+            </fieldset>
+
+            <!-- BAGIAN 2: CHECKLIST DINAMIS -->
+            <fieldset>
+                <legend>Checklist Pengamatan</legend>
+                <p class="info-text">Petunjuk: S = Sesuai; TS = Tidak Sesuai. Setiap TS harus mempunyai bukti objektif.</p>
+                
+                <div class="table-responsive">
+                    <table id="tabel-checklist" class="table-checklist">
+                        <thead>
+                            <tr>
+                                <th width="4%">No</th>
+                                <th width="16%">Objek Pemeriksaan</th>
+                                <th width="8%">Acuan</th>
+                                <th width="28%">Pengamatan di Lapangan</th>
+                                <th width="8%">S / TS</th>
+                                <th width="20%">Catatan / No. Temuan</th>
+                                <th width="6%">Kategori</th>
+                                <th width="10%">Ruangan/Depo</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-checklist">
+                            <!-- Diisi via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </fieldset>
+
+            <div class="form-actions">
+                <button type="submit" id="btn-submit" class="btn btn-primary">Simpan & Lanjut ke Verifikasi</button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>
