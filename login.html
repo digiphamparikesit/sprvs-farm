@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Supervisi Farmasi RSUD AM Parikesit</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+        body { display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f4f6f9; margin: 0; }
+        .login-box { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
+        .login-box img { width: 80px; margin-bottom: 20px; }
+        .login-box h2 { color: #2c3e50; margin-bottom: 30px; }
+        .form-group { margin-bottom: 20px; text-align: left; }
+        .form-group label { display: block; margin-bottom: 8px; color: #333; font-weight: 500; }
+        .form-group input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .btn-login { width: 100%; padding: 12px; background-color: #27ae60; color: white; border: none; border-radius: 4px; font-size: 1rem; cursor: pointer; margin-top: 10px; }
+        .btn-login:hover { background-color: #219150; }
+        .error-msg { color: red; font-size: 0.9rem; margin-top: 10px; display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="login-box">
+        <img src="assets/img/logo.png" alt="Logo RSUD">
+        <h2>Login Supervisor</h2>
+        
+        <form id="login-form">
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" placeholder="admin@rsamp.go.id" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="********" required>
+            </div>
+            <button type="submit" class="btn-login">Masuk</button>
+            <div id="error-msg" class="error-msg">Email atau password salah!</div>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('login-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const errorMsg = document.getElementById('error-msg');
+
+            // Logika Login Sederhana (Hardcoded)
+            // Email: admin@rsamp.go.id | Password: farmasi
+            if (email === 'admin@rsamp.go.id' && password === 'farmasi') {
+                // Simpan status login di browser (Session Storage)
+                sessionStorage.setItem('isLoggedIn', 'true');
+                sessionStorage.setItem('userEmail', email);
+                
+                // Arahkan ke Dashboard
+                window.location.href = 'index.html';
+            } else {
+                errorMsg.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
