@@ -53,6 +53,13 @@
         .topbar h1 { margin: 0; font-size: 1.2rem; color: #2c3e50; }
         .user-info { display: flex; align-items: center; gap: 10px; font-weight: bold; color: #555; }
 
+        /* Tombol Logout */
+        .btn-logout {
+            background: #e74c3c; color: white; border: none; padding: 8px 15px; border-radius: 5px;
+            cursor: pointer; font-size: 0.85rem; margin-left: 15px; display: flex; align-items: center; gap: 5px; transition: 0.2s;
+        }
+        .btn-logout:hover { background: #c0392b; }
+
         /* Area Halaman */
         .page-container { padding: 30px; }
         
@@ -98,7 +105,6 @@
         .d-none { display: none !important; }
     </style>
 
-    <!-- SCRIPT DASHBOARD (Kita buat di langkah ke-2) -->
     <script type="module" src="assets/js/dashboard.js"></script>
 </head>
 <body>
@@ -124,6 +130,9 @@
             <h1 id="page-title">Dashboard Supervisi</h1>
             <div class="user-info">
                 <i class="fas fa-user-tie"></i> Apoteker Supervisor
+                <button onclick="logout()" class="btn-logout" title="Logout">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
             </div>
         </div>
 
@@ -237,7 +246,7 @@
         </div>
     </div>
 
-    <!-- SCRIPT UNTUK NAVIGASI SIDEBAR -->
+    <!-- SCRIPT UNTUK NAVIGASI SIDEBAR & LOGOUT -->
     <script>
         function switchPage(pageId, element) {
             document.getElementById('page-dashboard').classList.add('d-none');
@@ -254,6 +263,14 @@
             const menuLinks = document.querySelectorAll('.sidebar-menu a');
             menuLinks.forEach(link => link.classList.remove('active'));
             element.classList.add('active');
+        }
+
+        function logout() {
+            if (confirm('Yakin ingin keluar dari sistem?')) {
+                sessionStorage.removeItem('isLoggedIn');
+                sessionStorage.removeItem('userEmail');
+                window.location.href = 'login.html';
+            }
         }
     </script>
 </body>
