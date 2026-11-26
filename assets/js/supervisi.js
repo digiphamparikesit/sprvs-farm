@@ -10,7 +10,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     let semuaPertanyaan = [];
     let semuaRuanganDB = []; 
 
-        const dataFarmasi = [
+    // DATA RUANGAN FARMASI (Diperbarui)
+    const dataFarmasi = [
         { nama: 'DEPO FARMASI CATHLAB', keyword: 'cathlab' },
         { nama: 'DEPO FARMASI IBS', keyword: 'ibs' },
         { nama: 'DEPO FARMASI IGD', keyword: 'igd' },
@@ -23,6 +24,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         { nama: 'FARMASI KLINIS', keyword: 'klinis' }
     ];
 
+    // DATA RUANGAN UNIT
     const dataUnit = [
         { nama: 'Ruang Rawat Inap', keyword: 'unit' },
         { nama: 'IGD', keyword: 'unit' },
@@ -39,12 +41,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         { nama: 'Laboratorium PK', keyword: 'unit' }
     ];
 
+    // 1. Load Data Ruangan dari Database (untuk UUID)
     async function loadDataRuanganDB() {
         const { data, error } = await supabase.from('ruangan').select('id, nama_ruangan');
-        if (error) { console.error(error); return; }
+        if (error) { console.error('Gagal load ruangan:', error); return; }
         semuaRuanganDB = data || [];
     }
 
+    // 2. Load Master Pertanyaan
     async function loadMasterPertanyaan() {
         const { data, error } = await supabase
             .from('master_pertanyaan')
@@ -56,6 +60,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         semuaPertanyaan = data || [];
     }
 
+    // 3. Dropdown Kategori Diubah
     selectKategori.addEventListener('change', (e) => {
         const kategoriDipilih = e.target.value;
         selectRuangan.innerHTML = '<option value="">-- Pilih Ruangan --</option>';
@@ -79,6 +84,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
+    // 4. Render Tabel Pertanyaan
     function renderPertanyaan(keywordFilter = '') {
         if (!keywordFilter) return;
 
@@ -86,15 +92,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!q.default_ruangan) return false; 
             
             const ruanganDB = q.default_ruangan.toLowerCase();
-            
-            // JIKA YANG DIPILIH ADALAH RUANGAN FARMASI (keywordFilter berisi 'depo', 'cathlab', dll)
             const isFarmasiDipilih = selectKategori.value === 'Farmasi';
             
             if (isFarmasiDipilih) {
-                // Cari pertanyaan yang di DB mengandung kata 'depo', 'farmasi', atau 'farklin'
+                // Logika Farmasi: Cari kata umum (depo/farmasi/farklin) agar semua Depo muncul
                 return ruanganDB.includes('depo') || ruanganDB.includes('farmasi') || ruanganDB.includes('farklin');
             } else {
-                // Jika Unit, gunakan pencocokan kata kunci seperti biasa (igd, laundry, dll)
+                // Logika Unit: Cari sesuai kata kunci spesifik
                 return ruanganDB.includes(keywordFilter.toLowerCase());
             }
         });
@@ -113,7 +117,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 lastKelompok = q.kelompok;
             }
 
-                        html += `
+            html += `
                 <tr class="pertanyaan-row" data-id="${q.id}">
                     <td class="text-center">${q.no_urut}</td>
                     <td>${q.objek_pemeriksaan}</td>
@@ -126,7 +130,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <td>
                         <textarea class="input-catatan" name="catatan_${q.id}" rows="2" placeholder="Wajib diisi jika TS" disabled></textarea>
                     </td>
-                    <!-- KOLOM BARU: Tindak Lanjut -->
                     <td>
                         <select class="input-tindak-lanjut" name="tindak_${q.id}" disabled style="width:100%; padding:5px; font-size:12px;">
                             <option value="">-- Pilih --</option>
@@ -134,25 +137,55 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <option value="Tidak Selesai">Tidak Selesai</option>
                         </select>
                     </td>
-                    <!-- KOLOM KATEGORI (DINAMIS) - HANYA SATU -->
                     <td class="text-center">
                         <span class="kategori-value" data-asli="${q.kategori}">${q.kategori}</span>
                     </td>
                 </tr>
             `;
         });
+
+        // TAMBAHAN REVISI 3: Baris Khusus Supervisi Kritis
+        html += `
+            <tr class="kelompok-header">
+                <td colspan="9"><strong>Hasil supervisi kritis dengan kategori mengancam keselamatan pasien</strong></td>
+            </tr>
+            <tr class="pertanyaan-row" id="row-supervisi-kritis">
+                <td class="text-center">*</td>
+                <td>Supervisi Kritis</td>
+                <td class="text-center">-</td>
+                <td>Silakan isi temuan kritis jika ada</td>
+                <td class="text-center">
+                    <label class="radio-label"><input type="radio" name="status_kritis" value="S"> S</label>
+                    <label class="radio-label"><input type="radio" name="status_kritis" value="TS"> TS</label>
+                </td>
+                <td>
+                    <textarea class="input-catatan" id="catatan_kritis" rows="2" placeholder="Wajib diisi jika TS" disabled></textarea>
+                </td>
+                <td>
+                    <select class="input-tindak-lanjut" id="tindak_kritis" disabled style="width:100%; padding:5px; font-size:12px;">
+                        <option value="">-- Pilih --</option>
+                        <option value="Selesai">Selesai</option>
+                        <option value="Tidak Selesai">Tidak Selesai</option>
+                    </select>
+                </td>
+                <td class="text-center">
+                    <span class="kategori-value" data-asli="5">5</span>
+                </td>
+            </tr>
+        `;
+
         tbody.innerHTML = html;
     }
 
+    // 5. Event Radio Button (S/TS)
     tbody.addEventListener('change', (e) => {
-        if (e.target.type === 'radio' && e.target.name.startsWith('status_')) {
+        if (e.target.type === 'radio' && (e.target.name.startsWith('status_') || e.target.name === 'status_kritis')) {
             const row = e.target.closest('tr');
             const catatanInput = row.querySelector('.input-catatan');
             const tindakInput = row.querySelector('.input-tindak-lanjut');
-            const kategoriCell = row.querySelector('.kategori-value'); // Ambil elemen span kategori
+            const kategoriCell = row.querySelector('.kategori-value');
 
             if (e.target.value === 'TS') {
-                // Jika memilih TS
                 catatanInput.disabled = false;
                 catatanInput.required = true;
                 catatanInput.focus();
@@ -160,10 +193,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 tindakInput.required = true;
                 row.style.backgroundColor = '#fff3cd';
                 
-                // Kembalikan angka asli
                 if (kategoriCell) kategoriCell.innerText = kategoriCell.dataset.asli;
             } else {
-                // Jika memilih S
                 catatanInput.disabled = true;
                 catatanInput.required = false;
                 catatanInput.value = '';
@@ -172,18 +203,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                 tindakInput.value = '';
                 row.style.backgroundColor = '';
                 
-                // Ubah angka menjadi 0
                 if (kategoriCell) kategoriCell.innerText = '0';
             }
         }
     });
 
+    // 6. Dropdown Ruangan Diubah
     selectRuangan.addEventListener('change', (e) => {
         const selectedOption = e.target.options[e.target.selectedIndex];
         const keyword = selectedOption.dataset.keyword || '';
         renderPertanyaan(keyword);
     });
 
+    // 7. Submit Form
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const btnSubmit = document.getElementById('btn-submit');
@@ -202,12 +234,23 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
+        // Pencarian ID Ruangan di Database (Sesuai Perbaikan Logika Farmasi)
         let ruanganDB;
         const kategoriDipilih = selectKategori.value;
+        const namaRuanganLower = namaRuanganDipilih.toLowerCase();
+
         if (kategoriDipilih === 'Farmasi') {
-            ruanganDB = semuaRuanganDB.find(r => r.nama_ruangan.toLowerCase().includes('depo') || r.nama_ruangan.toLowerCase().includes('gudang'));
+            ruanganDB = semuaRuanganDB.find(r => 
+                r.nama_ruangan.toLowerCase().includes(namaRuanganLower.split(' ')[0]) || 
+                r.nama_ruangan.toLowerCase().includes('depo') || 
+                r.nama_ruangan.toLowerCase().includes('farmasi')
+            );
         } else {
-            ruanganDB = semuaRuanganDB.find(r => r.nama_ruangan.toLowerCase().includes('unit') || r.nama_ruangan.toLowerCase().includes('rawat'));
+            ruanganDB = semuaRuanganDB.find(r => 
+                r.nama_ruangan.toLowerCase().includes(namaRuanganLower.split(' ')[0]) || 
+                r.nama_ruangan.toLowerCase().includes('unit') || 
+                r.nama_ruangan.toLowerCase().includes('rawat')
+            );
         }
         if (!ruanganDB && semuaRuanganDB.length > 0) ruanganDB = semuaRuanganDB[0];
         if (!ruanganDB) { showAlert('Database ruangan kosong.', 'error'); return; }
@@ -218,7 +261,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         let firstInvalidRow = null;
         const jawabanArray = [];
 
+        // Loop Validasi Pertanyaan Biasa
         rows.forEach(row => {
+            // Abaikan baris kritis di sini, akan dihandle terpisah
+            if (row.id === 'row-supervisi-kritis') return;
+
             const qId = row.dataset.id;
             const selectedRadio = row.querySelector(`input[name="status_${qId}"]:checked`);
             const catatanInput = row.querySelector(`textarea[name="catatan_${qId}"]`);
@@ -242,6 +289,25 @@ document.addEventListener('DOMContentLoaded', async () => {
                 });
             }
         });
+
+        // Ambil Data dari Baris Kritis
+        const radioKritis = document.querySelector('input[name="status_kritis"]:checked');
+        const catatanKritis = document.getElementById('catatan_kritis');
+        const tindakKritis = document.getElementById('tindak_kritis');
+
+        if (radioKritis) {
+            if (radioKritis.value === 'TS' && (catatanKritis.value.trim() === '' || !tindakKritis.value)) {
+                isValid = false;
+                showAlert('Harap isi catatan dan tindak lanjut pada baris Supervisi Kritis.', 'warning');
+            } else {
+                jawabanArray.push({
+                    pertanyaan_id: null, // Pastikan kolom ini nullable di DB, atau isi dengan ID dummy
+                    status: radioKritis.value,
+                    catatan_temuan: radioKritis.value === 'TS' ? catatanKritis.value.trim() : null,
+                    tindak_lanjut: radioKritis.value === 'TS' ? tindakKritis.value : null
+                });
+            }
+        }
 
         if (!isValid) {
             showAlert('Harap jawab semua, isi catatan & tindak lanjut jika memilih TS.', 'warning');
@@ -286,6 +352,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
+    // Inisialisasi Awal
     await loadDataRuanganDB();
     await loadMasterPertanyaan();
 });
