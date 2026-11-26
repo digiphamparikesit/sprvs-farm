@@ -67,7 +67,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     document.getElementById('pdf-tbody').innerHTML = tbodyHtml;
 
-        // 5. Tombol Cetak (Membuka Preview Terlebih Dahulu)
+    // 5. Tombol Cetak (Membuka Preview Terlebih Dahulu)
     document.getElementById('btn-cetak').addEventListener('click', () => {
         const element = document.getElementById('print-area');
         const modal = document.getElementById('pdf-preview-modal');
@@ -78,16 +78,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Beri efek loading di modal
         modal.style.display = 'flex';
         previewContent.innerHTML = '<p>Sedang memproses dokumen... Mohon tunggu.</p>';
-
-        // Tambahkan style sementara agar tabel rapi
-        const style = document.createElement('style');
-        style.innerHTML = `
-            @media print {
-                thead { display: table-header-group; }
-                tr { page-break-inside: avoid; }
-            }
-        `;
-        document.head.appendChild(style);
 
         // Konfigurasi HTML2PDF
         const opt = {
@@ -108,8 +98,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             // Event Listener untuk Tombol Download di dalam Modal
             document.getElementById('btn-download-pdf').onclick = () => {
-                // Proses konversi canvas ke PDF dan langsung download
-                const pdf = new jspdf.jsPDF({
+                // Karena jsPDF dimuat via UMD, kita panggil dari window.jspdf
+                const { jsPDF } = window.jspdf;
+                
+                // Gunakan format A4 landscape untuk mencetak gambar canvas
+                const pdf = new jsPDF({
                     orientation: 'landscape',
                     unit: 'mm',
                     format: 'a4'
@@ -125,7 +118,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         }).catch(err => {
             console.error(err);
-            previewContent.innerHTML = '<p style="color: red;">Gagal memproses dokumen.</p>';
+            previewContent.innerHTML = '<p style="color: red;">Gagal memproses dokumen. Cek console untuk detail.</p>';
         });
     });
 
@@ -134,5 +127,5 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('pdf-preview-modal').style.display = 'none';
         document.getElementById('print-area').style.display = 'none'; // Sembunyikan lagi area print
     });
-  });
+
 });
