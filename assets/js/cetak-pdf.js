@@ -10,7 +10,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    // 1. Ambil Data Header
     const { data: header, error: errHeader } = await supabase
         .from('supervisi')
         .select(`*, ruangan (nama_ruangan)`)
@@ -22,7 +21,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    // 2. Ambil Data Detail
     const { data: detail, error: errDetail } = await supabase
         .from('supervisi_detail')
         .select(`
@@ -36,7 +34,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    // 3. Isi Data ke HTML Print Area
+    // Isi Data ke HTML
     document.getElementById('pdf-tanggal').innerText = `${formatTanggalIndo(header.tanggal)} / ${header.jam}`;
     document.getElementById('pdf-supervisor').innerText = header.apoteker_supervisor_nama;
     document.getElementById('pdf-ruangan').innerText = header.ruangan ? header.ruangan.nama_ruangan : '-';
@@ -44,7 +42,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('pdf-risiko').innerText = header.kategori_risiko;
     document.getElementById('pdf-metode').innerText = `${header.metode} (Sampel: ${header.sampel})`;
 
-    // 4. Render Tabel dengan Sub Judul (Kelompok)
+    // Render Tabel & Sub Judul
     let tbodyHtml = '';
     let lastKelompok = '';
 
@@ -55,19 +53,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             const q = item.master_pertanyaan;
             const color = item.status === 'S' ? 'green' : 'red';
 
-            // Render Sub Judul (Kelompok) jika berubah
             if (q.kelompok && q.kelompok !== lastKelompok) {
-                tbodyHtml += `
-                    <tr class="sub-judul-row">
-                        <td colspan="7" style="background-color: #e2e8f0; font-weight: bold; padding: 8px; font-size: 11px;">
-                            ${q.kelompok}
-                        </td>
-                    </tr>
-                `;
+                tbodyHtml += `<tr class="sub-judul-row"><td colspan="7">${q.kelompok}</td></tr>`;
                 lastKelompok = q.kelompok;
             }
             
-            // Render Baris Pertanyaan
             tbodyHtml += `
                 <tr>
                     <td style="text-align: center;">${q.no_urut}</td>
@@ -83,55 +73,60 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     document.getElementById('pdf-tbody').innerHTML = tbodyHtml;
 
-    // 5. Tombol Cetak (Membuka Preview Terlebih Dahulu)
+    // Tombol Cetak
     document.getElementById('btn-cetak').addEventListener('click', () => {
         const element = document.getElementById('print-area');
         const modal = document.getElementById('pdf-preview-modal');
-        const previewContent = document.getElementById('preview-content');
+        const loadingText = document.getElementById('loading-text');
+        const previewResult = document.getElementById('preview-result');
         
-        element.style.display = 'block'; // Tampilkan sementara agar bisa dirender
-        
-        // Beri efek loading di modal
         modal.style.display = 'flex';
-        previewContent.innerHTML = '<p style="text-align: center; margin-top: 20px;">Sedang memproses dokumen... Mohon tunggu.</p>';
+        loadingText.style.display = 'block';
+        previewResult.style.display = 'none';
+        previewResult.innerHTML = '';
 
-        // Konfigurasi Render
-        const opt = {
-            margin:       [10, 10, 10, 10],
-            filename:     `Supervisi_Farmasi_${header.ruangan ? header.ruangan.nama_ruangan : 'RS'}_${header.tanggal}.pdf`,
-            image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2, useCORS: true },
-            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' },
-            pagebreak:    { mode: ['css', 'legacy'] }
-        };
+        // Tampilkan elemen sementara agar html2canvas bisa membacanya
+        element.style.display = 'block';
 
-        // Render HTML ke Canvas (Untuk Preview)
-        html2canvas(element, opt.html2canvas).then(canvas => {
+        // Render ke Gambar untuk Preview
+        html2canvas(element, { scale: 1.5, useCORS: true, scrollY: 0 }).then(canvas => {
             const imgData = canvas.toDataURL('image/jpeg', 0.95);
             
-            // Tampilkan gambar hasil render di dalam modal (Proporsional)
-            previewContent.innerHTML = `<img src="${imgData}" style="max-width: 100%; height: auto; display: block; margin: 0 auto; box-shadow: 0 0 10px rgba(0,0,0,0.2);">`;
-            
-            // Event Listener untuk Tombol Download
+            // Tampilkan di modal
+            previewResult.innerHTML = `<img src="${imgData}" style="max-width: 100%; height: auto; box-shadow: 0 0 10px rgba(0,0,0,0.2);">`;
+            loadingText.style.display = 'none';
+            previewResult.style.display = 'block';
+
+            // Sembunyikan kembali print-area dari layar utama
+            element.style.display = 'none';
+
+            // Setup Tombol Download
             document.getElementById('btn-download-pdf').onclick = () => {
-                // Gunakan html2pdf murni untuk mendownload agar header tabel berulang di setiap halaman
+                // Tampilkan lagi sementara untuk html2pdf
+                element.style.display = 'block';
+                
+                const opt = {
+                    margin:       [10, 10, 10, 10],
+                    filename:     `Supervisi_Farmasi_${header.tanggal}.pdf`,
+                    image:        { type: 'jpeg', quality: 0.98 },
+                    html2canvas:  { scale: 2, useCORS: true, scrollY: 0 },
+                    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' },
+                    pagebreak:    { mode: ['css', 'legacy'] } // Memaksa header tabel berulang
+                };
+
                 html2pdf().set(opt).from(element).save().then(() => {
-                    // Opsional: Tutup modal setelah selesai download
-                    // modal.style.display = 'none';
-                    // element.style.display = 'none';
+                    element.style.display = 'none';
                 });
             };
 
         }).catch(err => {
             console.error(err);
-            previewContent.innerHTML = '<p style="color: red; text-align: center; margin-top: 20px;">Gagal memproses dokumen.</p>';
+            loadingText.innerText = 'Gagal memproses dokumen.';
         });
     });
 
-    // 6. Logika untuk Menutup Modal Preview
+    // Tutup Modal
     document.getElementById('btn-close-preview').addEventListener('click', () => {
         document.getElementById('pdf-preview-modal').style.display = 'none';
-        document.getElementById('print-area').style.display = 'none'; // Sembunyikan lagi area print
     });
-
 });
