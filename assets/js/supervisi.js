@@ -8,11 +8,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const form = document.getElementById('form-supervisi');
 
     let semuaPertanyaan = [];
-    let semuaRuanganDB = []; // Menyimpan data asli dari Supabase
+    let semuaRuanganDB = []; 
 
-    // ==============================================================
-    // DATA MANUAL DROPDOWN (Untuk tampilan di form)
-    // ==============================================================
     const dataFarmasi = [
         { nama: 'Depo Farmasi / Gudang Farmasi', keyword: 'depo' },
         { nama: 'Farklin', keyword: 'farklin' }
@@ -34,17 +31,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         { nama: 'Laboratorium PK', keyword: 'unit' }
     ];
 
-    // 1. LOAD DATA RUANGAN DARI SUPABASE (UNTUK MENDAPATKAN UUID)
     async function loadDataRuanganDB() {
         const { data, error } = await supabase.from('ruangan').select('id, nama_ruangan');
-        if (error) {
-            console.error('Gagal memuat ruangan dari DB:', error);
-            return;
-        }
+        if (error) { console.error(error); return; }
         semuaRuanganDB = data || [];
     }
 
-    // 2. LOAD SEMUA MASTER PERTANYAAN
     async function loadMasterPertanyaan() {
         const { data, error } = await supabase
             .from('master_pertanyaan')
@@ -52,20 +44,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             .order('no_urut', { ascending: true })
             .order('id', { ascending: true });
 
-        if (error) {
-            console.error('Gagal memuat pertanyaan:', error);
-            showAlert('Gagal memuat pertanyaan: ' + error.message, 'error');
-            return;
-        }
+        if (error) { showAlert('Gagal memuat pertanyaan: ' + error.message, 'error'); return; }
         semuaPertanyaan = data || [];
     }
 
-    // 3. LOGIKA SAAT KELOMPOK DIUBAH
     selectKategori.addEventListener('change', (e) => {
         const kategoriDipilih = e.target.value;
-        
         selectRuangan.innerHTML = '<option value="">-- Pilih Ruangan --</option>';
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 20px;">Silakan pilih Unit/Ruangan terlebih dahulu.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding: 20px;">Silakan pilih Unit/Ruangan terlebih dahulu.</td></tr>';
 
         if (!kategoriDipilih) {
             selectRuangan.disabled = true;
@@ -74,34 +60,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         let listRuangan = (kategoriDipilih === 'Farmasi') ? dataFarmasi : dataUnit;
-
         selectRuangan.disabled = false;
         listRuangan.forEach((r, index) => {
             const opt = document.createElement('option');
-            // Value kita isi dengan index sementara, kita ambil UUID aslinya nanti saat submit
             opt.value = index; 
             opt.textContent = r.nama;
-            opt.dataset.nama = r.nama; // Simpan nama ruangan
-            opt.dataset.keyword = r.keyword; // Simpan keyword untuk filter pertanyaan
+            opt.dataset.nama = r.nama;
+            opt.dataset.keyword = r.keyword;
             selectRuangan.appendChild(opt);
         });
     });
 
-    // 4. RENDER TABEL PERTANYAAN
     function renderPertanyaan(keywordFilter = '') {
-        if (!keywordFilter) {
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 20px;">Silakan pilih Unit/Ruangan terlebih dahulu.</td></tr>';
-            return;
-        }
+        if (!keywordFilter) return;
 
         const pertanyaanTersaring = semuaPertanyaan.filter(q => {
             if (!q.default_ruangan) return false; 
-            const ruanganDB = q.default_ruangan.toLowerCase();
-            return ruanganDB.includes(keywordFilter.toLowerCase());
+            return q.default_ruangan.toLowerCase().includes(keywordFilter.toLowerCase());
         });
 
         if (pertanyaanTersaring.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 20px;">Tidak ada pertanyaan dengan kata kunci "${keywordFilter}" untuk ruangan ini.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding: 20px;">Tidak ada pertanyaan untuk ruangan ini.</td></tr>`;
             return;
         }
 
@@ -110,7 +89,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         pertanyaanTersaring.forEach((q) => {
             if (q.kelompok !== lastKelompok) {
-                html += `<tr class="kelompok-header"><td colspan="8"><strong>${q.kelompok}</strong></td></tr>`;
+                html += `<tr class="kelompok-header"><td colspan="9"><strong>${q.kelompok}</strong></td></tr>`;
                 lastKelompok = q.kelompok;
             }
 
@@ -124,42 +103,55 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <label class="radio-label"><input type="radio" name="status_${q.id}" value="S"> S</label>
                         <label class="radio-label"><input type="radio" name="status_${q.id}" value="TS"> TS</label>
                     </td>
-                    <td><textarea class="input-catatan" name="catatan_${q.id}" rows="2" placeholder="Wajib diisi jika TS" disabled></textarea></td>
+                    <td>
+                        <textarea class="input-catatan" name="catatan_${q.id}" rows="2" placeholder="Wajib diisi jika TS" disabled></textarea>
+                    </td>
+                    <!-- KOLOM BARU: Tindak Lanjut -->
+                    <td>
+                        <select class="input-tindak-lanjut" name="tindak_${q.id}" disabled style="width:100%; padding:5px; font-size:12px;">
+                            <option value="">-- Pilih --</option>
+                            <option value="Selesai">Selesai</option>
+                            <option value="Tidak Selesai">Tidak Selesai</option>
+                        </select>
+                    </td>
                     <td class="text-center">${q.kategori}</td>
-                    <td class="text-center" style="display: none;">${q.default_ruangan || '-'}</td>
                 </tr>
             `;
         });
         tbody.innerHTML = html;
     }
 
-    // 5. EVENT SAAT DROPDOWN RUANGAN SPESIFIK DIUBAH
+    tbody.addEventListener('change', (e) => {
+        if (e.target.type === 'radio' && e.target.name.startsWith('status_')) {
+            const row = e.target.closest('tr');
+            const catatanInput = row.querySelector('.input-catatan');
+            const tindakInput = row.querySelector('.input-tindak-lanjut');
+
+            if (e.target.value === 'TS') {
+                catatanInput.disabled = false;
+                catatanInput.required = true;
+                catatanInput.focus();
+                tindakInput.disabled = false;
+                tindakInput.required = true;
+                row.style.backgroundColor = '#fff3cd';
+            } else {
+                catatanInput.disabled = true;
+                catatanInput.required = false;
+                catatanInput.value = '';
+                tindakInput.disabled = true;
+                tindakInput.required = false;
+                tindakInput.value = '';
+                row.style.backgroundColor = '';
+            }
+        }
+    });
+
     selectRuangan.addEventListener('change', (e) => {
         const selectedOption = e.target.options[e.target.selectedIndex];
         const keyword = selectedOption.dataset.keyword || '';
         renderPertanyaan(keyword);
     });
 
-    // 6. EVENT DELEGATION RADIO S/TS
-    tbody.addEventListener('change', (e) => {
-        if (e.target.type === 'radio' && e.target.name.startsWith('status_')) {
-            const row = e.target.closest('tr');
-            const catatanInput = row.querySelector('.input-catatan');
-            if (e.target.value === 'TS') {
-                catatanInput.disabled = false;
-                catatanInput.required = true;
-                catatanInput.focus();
-                row.style.backgroundColor = '#fff3cd';
-            } else {
-                catatanInput.disabled = true;
-                catatanInput.required = false;
-                catatanInput.value = '';
-                row.style.backgroundColor = '';
-            }
-        }
-    });
-
-    // 7. HANDLE SUBMIT FORM
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const btnSubmit = document.getElementById('btn-submit');
@@ -172,48 +164,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         const namaRuanganDipilih = selectedOption.dataset.nama;
         
         if (!namaRuanganDipilih || rows.length === 0) {
-            showAlert('Pilih Kelompok dan Ruangan terlebih dahulu, lalu pastikan ada pertanyaan.', 'warning');
+            showAlert('Pilih Kelompok dan Ruangan terlebih dahulu.', 'warning');
             btnSubmit.disabled = false;
             btnSubmit.textContent = originalText;
             return;
         }
 
-                // CARI UUID ASLI DARI DATABASE BERDASARKAN KATA KUNCI KELOMPOK
         let ruanganDB;
         const kategoriDipilih = selectKategori.value;
-        const keyword = selectedOption.dataset.keyword || '';
-
         if (kategoriDipilih === 'Farmasi') {
-            // Jika user pilih Farklin atau Depo, cari di database ruangan yang ada kata depo/farmasi/gudang
-            ruanganDB = semuaRuanganDB.find(r => 
-                r.nama_ruangan.toLowerCase().includes('depo') || 
-                r.nama_ruangan.toLowerCase().includes('gudang') || 
-                r.nama_ruangan.toLowerCase().includes('farmasi')
-            );
+            ruanganDB = semuaRuanganDB.find(r => r.nama_ruangan.toLowerCase().includes('depo') || r.nama_ruangan.toLowerCase().includes('gudang'));
         } else {
-            // Jika user pilih Unit (IGD, Laundry, dll), cari di database ruangan yang ada kata unit/igd/rawat/lab/laundry
-            ruanganDB = semuaRuanganDB.find(r => 
-                r.nama_ruangan.toLowerCase().includes('unit') || 
-                r.nama_ruangan.toLowerCase().includes('rawat') ||
-                r.nama_ruangan.toLowerCase().includes('laundry') ||
-                r.nama_ruangan.toLowerCase().includes('lab') ||
-                r.nama_ruangan.toLowerCase().includes('igd')
-            );
+            ruanganDB = semuaRuanganDB.find(r => r.nama_ruangan.toLowerCase().includes('unit') || r.nama_ruangan.toLowerCase().includes('rawat'));
         }
+        if (!ruanganDB && semuaRuanganDB.length > 0) ruanganDB = semuaRuanganDB[0];
+        if (!ruanganDB) { showAlert('Database ruangan kosong.', 'error'); return; }
 
-        // Jika sama sekali tidak ada ruangan farmasi/unit di database, kita fallback ke ruangan pertama (opsional)
-        if (!ruanganDB && semuaRuanganDB.length > 0) {
-            ruanganDB = semuaRuanganDB[0];
-        }
-
-        if (!ruanganDB) {
-            showAlert('Database ruangan Anda kosong. Harap isi tabel "ruangan" di Supabase minimal 1 data.', 'error');
-            btnSubmit.disabled = false;
-            btnSubmit.textContent = originalText;
-            return;
-        }
-
-        const ruanganId = ruanganDB.id; // Ini UUID yang valid!
+        const ruanganId = ruanganDB.id; 
 
         let isValid = true;
         let firstInvalidRow = null;
@@ -223,28 +190,29 @@ document.addEventListener('DOMContentLoaded', async () => {
             const qId = row.dataset.id;
             const selectedRadio = row.querySelector(`input[name="status_${qId}"]:checked`);
             const catatanInput = row.querySelector(`textarea[name="catatan_${qId}"]`);
+            const tindakInput = row.querySelector(`select[name="tindak_${qId}"]`);
 
             if (!selectedRadio) {
                 isValid = false;
                 row.style.backgroundColor = '#f8d7da';
                 if (!firstInvalidRow) firstInvalidRow = row;
-            } else if (selectedRadio.value === 'TS' && (!catatanInput || catatanInput.value.trim() === '')) {
+            } else if (selectedRadio.value === 'TS' && (!catatanInput || catatanInput.value.trim() === '' || !tindakInput.value)) {
                 isValid = false;
                 row.style.backgroundColor = '#f8d7da';
                 if (!firstInvalidRow) firstInvalidRow = row;
-                if (catatanInput) catatanInput.focus();
             } else {
                 row.style.backgroundColor = '';
                 jawabanArray.push({
                     pertanyaan_id: qId,
                     status: selectedRadio.value,
-                    catatan_temuan: selectedRadio.value === 'TS' ? catatanInput.value.trim() : null
+                    catatan_temuan: selectedRadio.value === 'TS' ? catatanInput.value.trim() : null,
+                    tindak_lanjut: selectedRadio.value === 'TS' ? tindakInput.value : null
                 });
             }
         });
 
         if (!isValid) {
-            showAlert('Harap jawab semua pertanyaan (S/TS) dan isi catatan jika memilih TS.', 'warning');
+            showAlert('Harap jawab semua, isi catatan & tindak lanjut jika memilih TS.', 'warning');
             if (firstInvalidRow) firstInvalidRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
             btnSubmit.disabled = false;
             btnSubmit.textContent = originalText;
@@ -254,7 +222,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const headerData = {
             tanggal: document.getElementById('tanggal').value,
             jam: document.getElementById('jam').value,
-            ruangan_id: ruanganId, // UUID Asli
+            ruangan_id: ruanganId,
             kategori_risiko: document.getElementById('kategori_risiko').value,
             apoteker_supervisor_nama: document.getElementById('supervisor').value,
             penanggung_jawab_nama: document.getElementById('pj').value,
@@ -278,16 +246,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             window.location.href = `verifikasi.html?id=${headerInserted.id}`;
 
         } catch (error) {
-            console.error('DETAIL ERROR:', error);
-            showAlert('Gagal menyimpan data: ' + (error.message || 'Terjadi kesalahan'), 'error');
+            console.error(error);
+            showAlert('Gagal menyimpan data: ' + error.message, 'error');
         } finally {
             btnSubmit.disabled = false;
             btnSubmit.textContent = originalText;
         }
     });
 
-    // 8. INISIALISASI
-    await loadDataRuanganDB(); // Load data ruangan untuk UUID
+    await loadDataRuanganDB();
     await loadMasterPertanyaan();
-    renderPertanyaan('');
 });
