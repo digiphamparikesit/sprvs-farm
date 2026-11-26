@@ -79,46 +79,48 @@ document.addEventListener('DOMContentLoaded', async () => {
         modal.style.display = 'flex';
         previewContent.innerHTML = '<p>Sedang memproses dokumen... Mohon tunggu.</p>';
 
-        // Konfigurasi HTML2PDF
+        // KONFIGURASI HTML2CANVAS LANGSUNG (Lebih stabil dari html2pdf)
         const opt = {
-            margin:       [10, 10, 10, 10],
-            filename:     `Supervisi_Farmasi_${header.ruangan ? header.ruangan.nama_ruangan : 'RS'}_${header.tanggal}.pdf`,
-            image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2, useCORS: true },
-            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' },
-            pagebreak:    { mode: ['css', 'legacy'] }
+            scale: 2,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#ffffff'
         };
 
-        // Render HTML ke Canvas (Gambar)
-        html2pdf().set(opt).from(element).toCanvas().then(canvas => {
-            const imgData = canvas.toDataURL('image/jpeg');
+        // Render HTML ke Canvas
+        html2canvas(element, opt).then(canvas => {
+            const imgData = canvas.toDataURL('image/jpeg', 0.95);
             
             // Tampilkan gambar hasil render ke dalam modal
             previewContent.innerHTML = `<img src="${imgData}" style="width: 100%; max-width: 1000px; box-shadow: 0 0 10px rgba(0,0,0,0.2);">`;
             
             // Event Listener untuk Tombol Download di dalam Modal
             document.getElementById('btn-download-pdf').onclick = () => {
-                // Karena jsPDF dimuat via UMD, kita panggil dari window.jspdf
+                // Ambil jsPDF dari window
                 const { jsPDF } = window.jspdf;
                 
-                // Gunakan format A4 landscape untuk mencetak gambar canvas
+                // Buat dokumen PDF baru (A4 Landscape)
                 const pdf = new jsPDF({
                     orientation: 'landscape',
                     unit: 'mm',
                     format: 'a4'
                 });
                 
-                const imgProps = pdf.getImageProperties(imgData);
+                // Hitung ukuran agar pas di kertas A4
                 const pdfWidth = pdf.internal.pageSize.getWidth();
-                const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
                 
+                // Masukkan gambar ke PDF
                 pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
-                pdf.save(opt.filename);
+                
+                // Unduh
+                const filename = `Supervisi_Farmasi_${header.ruangan ? header.ruangan.nama_ruangan : 'RS'}_${header.tanggal}.pdf`;
+                pdf.save(filename);
             };
 
         }).catch(err => {
             console.error(err);
-            previewContent.innerHTML = '<p style="color: red;">Gagal memproses dokumen. Cek console untuk detail.</p>';
+            previewContent.innerHTML = '<p style="color: red;">Gagal memproses dokumen. Pastikan gambar/logo dapat diakses.</p>';
         });
     });
 
