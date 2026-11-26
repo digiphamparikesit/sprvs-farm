@@ -96,34 +96,61 @@ document.addEventListener('DOMContentLoaded', async () => {
         let bodyData = [];
         let currentKelompok = '';
 
-        if (detail) {
-            detail.sort((a, b) => a.master_pertanyaan.no_urut.localeCompare(b.master_pertanyaan.no_urut));
-            detail.forEach((item) => {
-                const q = item.master_pertanyaan;
-                
-                // Render Sub Judul
-                if (q.kelompok && q.kelompok !== currentKelompok) {
-                    bodyData.push([
-                        { content: q.kelompok, colSpan: 8, styles: { fillColor: [226, 232, 240], fontStyle: 'bold', halign: 'left' } }
-                    ]);
-                    currentKelompok = q.kelompok;
-                }
+        // Urutkan data: Taruh yang punya master_pertanyaan di atas, yang null di bawah
+        const sortedDetail = detail ? [...detail].sort((a, b) => {
+            if (!a.master_pertanyaan && !b.master_pertanyaan) return 0;
+            if (!a.master_pertanyaan) return 1;
+            if (!b.master_pertanyaan) return -1;
+            return a.master_pertanyaan.no_urut.localeCompare(b.master_pertanyaan.no_urut);
+        }) : [];
 
-                // LOGIKA BARU: S = 0, TS = Nilai Kategori
-                let nilaiKategori = item.status === 'S' ? '0' : q.kategori;
-
+        sortedDetail.forEach((item) => {
+            // JIKA ITEM ADALAH BARIS KRITIS (Tidak punya master_pertanyaan)
+            if (!item.master_pertanyaan) {
                 bodyData.push([
-                    { content: q.no_urut, styles: { halign: 'center' } },
-                    q.objek_pemeriksaan,
-                    { content: q.acuan, styles: { halign: 'center' } },
-                    q.pengamatan_dilapangan,
+                    { content: 'Kritis', colSpan: 8, styles: { fillColor: [226, 232, 240], fontStyle: 'bold', halign: 'left' } }
+                ]);
+                
+                let nilaiKategoriKritis = item.status === 'S' ? '0' : '5'; // Default 5 untuk kritis
+                
+                bodyData.push([
+                    { content: '*', styles: { halign: 'center' } },
+                    "Hasil supervisi kritis dengan kategori mengancam keselamatan pasien",
+                    { content: '-', styles: { halign: 'center' } },
+                    "Silakan isi temuan kritis jika ada",
                     { content: item.status, styles: { halign: 'center', textColor: item.status === 'S' ? [0, 128, 0] : [255, 0, 0], fontStyle: 'bold' } },
                     item.catatan_temuan || '-',
-                    { content: item.tindak_lanjut || '-', styles: { halign: 'center' } }, // Kolom Tindak Lanjut
-                    { content: nilaiKategori, styles: { halign: 'center' } }
+                    { content: item.tindak_lanjut || '-', styles: { halign: 'center' } },
+                    { content: nilaiKategoriKritis, styles: { halign: 'center' } }
                 ]);
-            });
-        }
+                return; // Lanjut ke item berikutnya
+            }
+
+            // JIKA ITEM ADALAH PERTANYAAN BIASA
+            const q = item.master_pertanyaan;
+            
+            // Render Sub Judul
+            if (q.kelompok && q.kelompok !== currentKelompok) {
+                bodyData.push([
+                    { content: q.kelompok, colSpan: 8, styles: { fillColor: [226, 232, 240], fontStyle: 'bold', halign: 'left' } }
+                ]);
+                currentKelompok = q.kelompok;
+            }
+
+            // LOGIKA BARU: S = 0, TS = Nilai Kategori
+            let nilaiKategori = item.status === 'S' ? '0' : q.kategori;
+
+            bodyData.push([
+                { content: q.no_urut, styles: { halign: 'center' } },
+                q.objek_pemeriksaan,
+                { content: q.acuan, styles: { halign: 'center' } },
+                q.pengamatan_dilapangan,
+                { content: item.status, styles: { halign: 'center', textColor: item.status === 'S' ? [0, 128, 0] : [255, 0, 0], fontStyle: 'bold' } },
+                item.catatan_temuan || '-',
+                { content: item.tindak_lanjut || '-', styles: { halign: 'center' } }, // Kolom Tindak Lanjut
+                { content: nilaiKategori, styles: { halign: 'center' } }
+            ]);
+        });
 
         doc.autoTable({
             startY: 72,
@@ -134,14 +161,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 { content: 'Pengamatan di Lapangan' },
                 { content: 'S / TS', styles: { halign: 'center' } },
                 { content: 'Catatan/nomor temuan' },
-                { content: 'Hasil Tindak Lanjut', styles: { halign: 'center' } }, // Header Baru
+                { content: 'Hasil Tindak Lanjut', styles: { halign: 'center' } },
                 { content: 'Kategori', styles: { halign: 'center' } }
             ]],
             body: bodyData,
             theme: 'grid',
             styles: {
                 font: 'times',
-                fontSize: 8, // Ukuran font sedikit dikecilkan agar muat kolom baru
+                fontSize: 8,
                 cellPadding: 2,
                 lineWidth: 0.1,
                 lineColor: [0, 0, 0],
@@ -156,10 +183,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 0: { cellWidth: 10 },
                 1: { cellWidth: 40 },
                 2: { cellWidth: 22 },
-                3: { cellWidth: 70 }, // Lebar disesuaikan karena kolom bertambah
+                3: { cellWidth: 70 },
                 4: { cellWidth: 12 },
                 5: { cellWidth: 45 },
-                6: { cellWidth: 30 }, // Lebar Tindak Lanjut
+                6: { cellWidth: 30 },
                 7: { cellWidth: 15 }
             },
             didDrawPage: function (data) {
