@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    // 2. Isi Data ke HTML (Untuk Preview di layar web)
+    // 2. Isi Data ke HTML
     document.getElementById('pdf-tanggal').innerText = `${formatTanggalIndo(header.tanggal)} / ${header.jam}`;
     document.getElementById('pdf-supervisor').innerText = header.apoteker_supervisor_nama;
     document.getElementById('pdf-ruangan').innerText = header.ruangan ? header.ruangan.nama_ruangan : '-';
@@ -72,10 +72,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 3. TOMBOL CETAK
     document.getElementById('btn-cetak').addEventListener('click', async () => {
+        // Pastikan library jsPDF tersedia
+        if (!window.jspdf) {
+            showAlert('Library jsPDF tidak ditemukan. Pastikan script dimuat.', 'error');
+            return;
+        }
+
         const { jsPDF } = window.jspdf;
+        // Inisialisasi jsPDF mode landscape
         const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'landscape' });
 
-        // --- FUNGSI UNTUK MENGGAMBAR KOP SURAT ---
+        // FUNGSI MENGGAMBAR KOP SURAT
         function gambarKopSurat() {
             doc.setFont("times", "normal");
             doc.setFontSize(12);
@@ -121,23 +128,23 @@ document.addEventListener('DOMContentLoaded', async () => {
             doc.text(`: ${header.metode} (Sampel: ${header.sampel})`, 185, 66);
         }
 
-        // Gambar kop surat di halaman pertama
         gambarKopSurat();
 
-        // --- SUSUN DATA TABEL ---
+        // SUSUN DATA UNTUK TABEL
         let bodyData = [];
         let currentKelompok = '';
 
         if (detail) {
             detail.forEach((item) => {
                 const q = item.master_pertanyaan;
+                // Baris Sub-Judul
                 if (q.kelompok && q.kelompok !== currentKelompok) {
                     bodyData.push([
                         { content: q.kelompok, colSpan: 7, styles: { fillColor: [226, 232, 240], fontStyle: 'bold', halign: 'left' } }
                     ]);
                     currentKelompok = q.kelompok;
                 }
-
+                // Baris Data
                 bodyData.push([
                     { content: q.no_urut, styles: { halign: 'center' } },
                     q.objek_pemeriksaan,
@@ -150,9 +157,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         }
 
-        // --- GENERATE TABEL ---
+        // PANGGIL AUTOTABLE
+        // Karena jsPDF-autotable versi baru mendaftarkan diri ke doc secara otomatis
         doc.autoTable({
-            startY: 72, // Mulai tabel setelah kop surat di halaman 1
+            startY: 72, // Mulai setelah kop surat
             head: [[
                 { content: 'No', styles: { halign: 'center' } },
                 { content: 'Objek Pemeriksaan' },
@@ -186,22 +194,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                 5: { cellWidth: 50 },
                 6: { cellWidth: 20 }
             },
-            // Trik agar kop surat tidak tertimpa tabel saat ganti halaman
             didDrawPage: function (data) {
-                // Jika ini bukan halaman pertama, kita bisa menambahkan garis atas agar rapi
+                // Jika halaman > 1, beri garis atas
                 if (doc.internal.getNumberOfPages() > 1) {
                     doc.setLineWidth(0.5);
                     doc.line(10, 10, 287, 10);
                 }
-
-                // Footer
+                // Footer Halaman
                 const str = "Halaman " + doc.internal.getNumberOfPages();
                 doc.setFontSize(8);
                 doc.text(str, 280, 200, { align: "right" });
             }
         });
 
-        // --- TANDA TANGAN ---
+        // TANDA TANGAN
         let finalY = doc.lastAutoTable.finalY + 15;
         
         if (finalY > 170) {
