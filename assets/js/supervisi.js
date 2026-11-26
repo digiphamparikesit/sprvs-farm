@@ -144,23 +144,35 @@ document.addEventListener('DOMContentLoaded', async () => {
             `;
         });
 
-        // TAMBAHAN REVISI 3: Baris Khusus Supervisi Kritis
+                // TAMBAHAN REVISI 3: Baris Khusus Supervisi Kritis (Bisa Diketik Manual)
         html += `
             <tr class="kelompok-header">
                 <td colspan="9"><strong>Hasil supervisi kritis dengan kategori mengancam keselamatan pasien</strong></td>
             </tr>
             <tr class="pertanyaan-row" id="row-supervisi-kritis">
                 <td class="text-center">*</td>
-                <td>Supervisi Kritis</td>
-                <td class="text-center">-</td>
-                <td>Silakan isi temuan kritis jika ada</td>
+                <!-- Kolom Objek Pemeriksaan (Bisa Diketik) -->
+                <td>
+                    <input type="text" id="objek_kritis" class="input-catatan" style="width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 4px;" placeholder="Ketik Objek..." required>
+                </td>
+                <!-- Kolom Acuan (Bisa Diketik) -->
+                <td>
+                    <input type="text" id="acuan_kritis" class="input-catatan" style="width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 4px;" placeholder="Ketik Acuan..." required>
+                </td>
+                <!-- Kolom Pengamatan (Bisa Diketik) -->
+                <td>
+                    <textarea id="pengamatan_kritis" class="input-catatan" rows="2" style="width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 4px;" placeholder="Ketik Pengamatan..." required></textarea>
+                </td>
+                <!-- Radio Button -->
                 <td class="text-center">
                     <label class="radio-label"><input type="radio" name="status_kritis" value="S"> S</label>
                     <label class="radio-label"><input type="radio" name="status_kritis" value="TS"> TS</label>
                 </td>
+                <!-- Catatan Temuan -->
                 <td>
                     <textarea class="input-catatan" id="catatan_kritis" rows="2" placeholder="Wajib diisi jika TS" disabled></textarea>
                 </td>
+                <!-- Tindak Lanjut -->
                 <td>
                     <select class="input-tindak-lanjut" id="tindak_kritis" disabled style="width:100%; padding:5px; font-size:12px;">
                         <option value="">-- Pilih --</option>
@@ -168,6 +180,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <option value="Tidak Selesai">Tidak Selesai</option>
                     </select>
                 </td>
+                <!-- Kategori Nilai (Default 5) -->
                 <td class="text-center">
                     <span class="kategori-value" data-asli="5">5</span>
                 </td>
