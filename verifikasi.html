@@ -5,13 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Verifikasi & Cetak - RSUD AM Parikesit</title>
     <link rel="stylesheet" href="assets/css/style.css">
-    <!-- Library untuk Cetak PDF -->
+    
+    <!-- Library untuk Cetak PDF & Preview -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <!-- html2canvas sudah include di dalam html2pdf.bundle, tapi tidak apa-apa ditaruh di sini untuk keamanan -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
     <script type="module" src="assets/js/cetak-pdf.js"></script>
 </head>
 <body>
+
+    <!-- MODAL PREVIEW PDF -->
+    <div id="pdf-preview-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; justify-content: center; align-items: center; flex-direction: column;">
+        <div style="background: white; padding: 10px; border-radius: 8px; width: 90%; height: 90%; display: flex; flex-direction: column;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px; align-items: center;">
+                <h3 style="margin: 0;">Preview Laporan Supervisi</h3>
+                <div>
+                    <button id="btn-download-pdf" class="btn btn-primary" style="margin-right: 10px;">Download PDF</button>
+                    <button id="btn-close-preview" class="btn btn-secondary">Tutup</button>
+                </div>
+            </div>
+            <!-- Area tempat gambar hasil render akan ditampilkan -->
+            <div id="preview-content" style="flex: 1; overflow-y: auto; border: 1px solid #ccc; padding: 10px; background: #f9f9f9; text-align: center;">
+                <p>Sedang memproses dokumen... Mohon tunggu.</p>
+            </div>
+        </div>
+    </div>
+    
     <div class="container">
         <!-- TOMBOL AKSI (Tidak Ikut Tercetak) -->
         <div class="no-print">
@@ -24,7 +44,7 @@
         <!-- AREA CETAK PDF -->
         <div id="print-area" style="display: none; background: white; padding: 10px; font-family: 'Times New Roman', Times, serif;">
             
-            <!-- KOP SURAT & INFO (Hanya Muncul di Halaman 1) -->
+            <!-- KOP SURAT & INFO -->
             <div class="kop-container">
                 <div class="kop-surat" style="display: flex; align-items: center; margin-bottom: 5px;">
                     <img src="assets/img/logo.png" alt="Logo" style="width: 80px; margin-right: 20px;">
@@ -90,6 +110,6 @@
             </div>
 
         </div> <!-- Penutup print-area -->
-    </div> <!-- Penutup container (INI YANG SEBELUMNYA HILANG) -->
+    </div> <!-- Penutup container -->
 </body>
 </html>
