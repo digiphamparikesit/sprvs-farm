@@ -10,9 +10,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     let semuaPertanyaan = [];
     let semuaRuanganDB = []; 
 
-    const dataFarmasi = [
-        { nama: 'Depo Farmasi / Gudang Farmasi', keyword: 'depo' },
-        { nama: 'Farklin', keyword: 'farklin' }
+        const dataFarmasi = [
+        { nama: 'DEPO FARMASI CATHLAB', keyword: 'cathlab' },
+        { nama: 'DEPO FARMASI IBS', keyword: 'ibs' },
+        { nama: 'DEPO FARMASI IGD', keyword: 'igd' },
+        { nama: 'DEPO FARMASI IRIN DAN RAWAT INAP MATERNITAS', keyword: 'maternitas' },
+        { nama: 'DEPO FARMASI IRNA 1 DAN PAVILIUN', keyword: 'paviliun' },
+        { nama: 'DEPO FARMASI ONKOLOGI TERPADU', keyword: 'onkologi' },
+        { nama: 'DEPO FARMASI RAWAT JALAN', keyword: 'rawat jalan' },
+        { nama: 'DEPO FARMASI RAWAT JALAN MATERNITAS', keyword: 'rawat jalan maternitas' },
+        { nama: 'GUDANG FARMASI', keyword: 'gudang' },
+        { nama: 'FARMASI KLINIS', keyword: 'klinis' }
     ];
 
     const dataUnit = [
