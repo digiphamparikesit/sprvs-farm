@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         .from('supervisi_detail')
         .select(`
             status, catatan_temuan,
-            master_pertanyaan (no_urut, objek_pemeriksaan, acuan, pengamatan_dilapangan, kategori, default_ruangan)
+            master_pertanyaan (no_urut, objek_pemeriksaan, acuan, pengamatan_dilapangan, kategori, default_ruangan, kelompok)
         `)
         .eq('supervisi_id', supervisiId);
 
@@ -44,14 +44,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('pdf-risiko').innerText = header.kategori_risiko;
     document.getElementById('pdf-metode').innerText = `${header.metode} (Sampel: ${header.sampel})`;
 
-    // 4. Render Tabel
+    // 4. Render Tabel dengan Sub Judul (Kelompok)
     let tbodyHtml = '';
+    let lastKelompok = '';
+
     if (detail) {
         detail.sort((a, b) => a.master_pertanyaan.no_urut.localeCompare(b.master_pertanyaan.no_urut));
+        
         detail.forEach((item) => {
             const q = item.master_pertanyaan;
             const color = item.status === 'S' ? 'green' : 'red';
+
+            // Render Sub Judul (Kelompok) jika berubah
+            if (q.kelompok && q.kelompok !== lastKelompok) {
+                tbodyHtml += `
+                    <tr class="sub-judul-row">
+                        <td colspan="7" style="background-color: #e2e8f0; font-weight: bold; padding: 8px; font-size: 11px;">
+                            ${q.kelompok}
+                        </td>
+                    </tr>
+                `;
+                lastKelompok = q.kelompok;
+            }
             
+            // Render Baris Pertanyaan
             tbodyHtml += `
                 <tr>
                     <td style="text-align: center;">${q.no_urut}</td>
@@ -77,50 +93,38 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         // Beri efek loading di modal
         modal.style.display = 'flex';
-        previewContent.innerHTML = '<p>Sedang memproses dokumen... Mohon tunggu.</p>';
+        previewContent.innerHTML = '<p style="text-align: center; margin-top: 20px;">Sedang memproses dokumen... Mohon tunggu.</p>';
 
-        // KONFIGURASI HTML2CANVAS LANGSUNG (Lebih stabil dari html2pdf)
+        // Konfigurasi Render
         const opt = {
-            scale: 2,
-            useCORS: true,
-            allowTaint: true,
-            backgroundColor: '#ffffff'
+            margin:       [10, 10, 10, 10],
+            filename:     `Supervisi_Farmasi_${header.ruangan ? header.ruangan.nama_ruangan : 'RS'}_${header.tanggal}.pdf`,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' },
+            pagebreak:    { mode: ['css', 'legacy'] }
         };
 
-        // Render HTML ke Canvas
-        html2canvas(element, opt).then(canvas => {
+        // Render HTML ke Canvas (Untuk Preview)
+        html2canvas(element, opt.html2canvas).then(canvas => {
             const imgData = canvas.toDataURL('image/jpeg', 0.95);
             
-            // Tampilkan gambar hasil render ke dalam modal
-            previewContent.innerHTML = `<img src="${imgData}" style="width: 100%; max-width: 1000px; box-shadow: 0 0 10px rgba(0,0,0,0.2);">`;
+            // Tampilkan gambar hasil render di dalam modal (Proporsional)
+            previewContent.innerHTML = `<img src="${imgData}" style="max-width: 100%; height: auto; display: block; margin: 0 auto; box-shadow: 0 0 10px rgba(0,0,0,0.2);">`;
             
-            // Event Listener untuk Tombol Download di dalam Modal
+            // Event Listener untuk Tombol Download
             document.getElementById('btn-download-pdf').onclick = () => {
-                // Ambil jsPDF dari window
-                const { jsPDF } = window.jspdf;
-                
-                // Buat dokumen PDF baru (A4 Landscape)
-                const pdf = new jsPDF({
-                    orientation: 'landscape',
-                    unit: 'mm',
-                    format: 'a4'
+                // Gunakan html2pdf murni untuk mendownload agar header tabel berulang di setiap halaman
+                html2pdf().set(opt).from(element).save().then(() => {
+                    // Opsional: Tutup modal setelah selesai download
+                    // modal.style.display = 'none';
+                    // element.style.display = 'none';
                 });
-                
-                // Hitung ukuran agar pas di kertas A4
-                const pdfWidth = pdf.internal.pageSize.getWidth();
-                const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-                
-                // Masukkan gambar ke PDF
-                pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
-                
-                // Unduh
-                const filename = `Supervisi_Farmasi_${header.ruangan ? header.ruangan.nama_ruangan : 'RS'}_${header.tanggal}.pdf`;
-                pdf.save(filename);
             };
 
         }).catch(err => {
             console.error(err);
-            previewContent.innerHTML = '<p style="color: red;">Gagal memproses dokumen. Pastikan gambar/logo dapat diakses.</p>';
+            previewContent.innerHTML = '<p style="color: red; text-align: center; margin-top: 20px;">Gagal memproses dokumen.</p>';
         });
     });
 
