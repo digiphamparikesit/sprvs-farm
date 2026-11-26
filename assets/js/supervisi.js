@@ -93,7 +93,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 lastKelompok = q.kelompok;
             }
 
-            html += `
+                        html += `
                 <tr class="pertanyaan-row" data-id="${q.id}">
                     <td class="text-center">${q.no_urut}</td>
                     <td>${q.objek_pemeriksaan}</td>
@@ -114,7 +114,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <option value="Tidak Selesai">Tidak Selesai</option>
                         </select>
                     </td>
-                    <td class="text-center">${q.kategori}</td>
+                    <!-- KOLOM KATEGORI (DINAMIS) - HANYA SATU -->
+                    <td class="text-center">
+                        <span class="kategori-value" data-asli="${q.kategori}">${q.kategori}</span>
+                    </td>
                 </tr>
             `;
         });
