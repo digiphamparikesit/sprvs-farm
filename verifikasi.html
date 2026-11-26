@@ -8,27 +8,27 @@
     
     <!-- Library untuk Cetak PDF & Preview -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    
     <script type="module" src="assets/js/cetak-pdf.js"></script>
 
     <style>
-        /* CSS Khusus untuk Print/PDF agar Header Tabel Berulang */
+        /* CSS Khusus untuk Cetak PDF (Header Berulang & Garis Rapi) */
         @media print {
             thead { display: table-header-group; }
             tr { page-break-inside: avoid; }
-            .sub-judul-row { page-break-after: avoid; } /* Agar sub-judul tidak terpisah dari tabelnya */
+            .sub-judul-row { page-break-after: avoid; }
         }
+
+        .table-pdf { width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 15px; }
+        .table-pdf th, .table-pdf td { border: 1px solid black; padding: 4px; vertical-align: top; }
+        .table-pdf th { background-color: #e0e0e0; text-align: center; font-weight: bold; }
 
         /* Styling Sub Judul (Kelompok) */
         .sub-judul-row td {
-            background-color: #e2e8f0 !important; /* Warna abu-abu terang */
+            background-color: #e2e8f0 !important;
             font-weight: bold;
             font-size: 11px;
             padding: 8px !important;
             text-align: left;
-            border: 1px solid black;
         }
     </style>
 </head>
@@ -44,9 +44,11 @@
                     <button id="btn-close-preview" class="btn btn-secondary">Tutup</button>
                 </div>
             </div>
-            <!-- Area tempat gambar hasil render akan ditampilkan -->
-            <div id="preview-content" style="flex: 1; overflow-y: auto; border: 1px solid #ccc; padding: 10px; background: #f9f9f9; text-align: center;">
-                <p>Sedang memproses dokumen... Mohon tunggu.</p>
+            
+            <!-- Menggunakan Iframe untuk Preview agar tidak gepeng dan sesuai ukuran kertas -->
+            <div id="preview-content" style="flex: 1; border: 1px solid #ccc; background: #f9f9f9; overflow: hidden;">
+                <iframe id="preview-iframe" style="width: 100%; height: 100%; border: none; display: none;"></iframe>
+                <p id="loading-text" style="text-align: center; margin-top: 20px;">Sedang memproses dokumen... Mohon tunggu.</p>
             </div>
         </div>
     </div>
@@ -61,7 +63,7 @@
         </div>
 
         <!-- AREA CETAK PDF -->
-        <div id="print-area" style="display: none; background: white; padding: 10px; font-family: 'Times New Roman', Times, serif;">
+        <div id="print-area" style="background: white; padding: 10px; font-family: 'Times New Roman', Times, serif;">
             
             <!-- KOP SURAT & INFO -->
             <div class="kop-container">
@@ -97,7 +99,7 @@
             </div>
 
             <!-- TABEL CHECKLIST -->
-            <table class="table-pdf" border="1" style="width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 15px;">
+            <table class="table-pdf">
                 <thead>
                     <tr>
                         <th width="4%">No</th>
