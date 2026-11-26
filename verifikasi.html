@@ -6,12 +6,15 @@
     <title>Verifikasi & Cetak - RSUD AM Parikesit</title>
     <link rel="stylesheet" href="assets/css/style.css">
     
-    <!-- Library untuk Cetak PDF & Preview -->
+    <!-- Library Wajib -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
     <script type="module" src="assets/js/cetak-pdf.js"></script>
 
     <style>
-        /* CSS Khusus untuk Cetak PDF (Header Berulang & Garis Rapi) */
+        /* CSS Khusus untuk Cetak PDF */
         @media print {
             thead { display: table-header-group; }
             tr { page-break-inside: avoid; }
@@ -22,7 +25,6 @@
         .table-pdf th, .table-pdf td { border: 1px solid black; padding: 4px; vertical-align: top; }
         .table-pdf th { background-color: #e0e0e0; text-align: center; font-weight: bold; }
 
-        /* Styling Sub Judul (Kelompok) */
         .sub-judul-row td {
             background-color: #e2e8f0 !important;
             font-weight: bold;
@@ -45,16 +47,18 @@
                 </div>
             </div>
             
-            <!-- Menggunakan Iframe untuk Preview agar tidak gepeng dan sesuai ukuran kertas -->
-            <div id="preview-content" style="flex: 1; border: 1px solid #ccc; background: #f9f9f9; overflow: hidden;">
-                <iframe id="preview-iframe" style="width: 100%; height: 100%; border: none; display: none;"></iframe>
+            <!-- Area Preview -->
+            <div id="preview-content" style="flex: 1; border: 1px solid #ccc; background: #f9f9f9; overflow-y: auto; padding: 10px;">
                 <p id="loading-text" style="text-align: center; margin-top: 20px;">Sedang memproses dokumen... Mohon tunggu.</p>
+                <div id="preview-result" style="display: none; text-align: center;">
+                    <!-- Gambar preview akan muncul di sini -->
+                </div>
             </div>
         </div>
     </div>
     
     <div class="container">
-        <!-- TOMBOL AKSI (Tidak Ikut Tercetak) -->
+        <!-- TOMBOL AKSI -->
         <div class="no-print">
             <h2>Verifikasi Hasil Supervisi</h2>
             <p>Data berhasil disimpan. Silakan tinjau dan cetak laporan.</p>
@@ -62,8 +66,8 @@
             <a href="supervisi.html" class="btn btn-secondary">Kembali ke Form</a>
         </div>
 
-        <!-- AREA CETAK PDF -->
-        <div id="print-area" style="background: white; padding: 10px; font-family: 'Times New Roman', Times, serif;">
+        <!-- AREA CETAK PDF (Tersembunyi dari layar utama) -->
+        <div id="print-area" style="display: none; background: white; padding: 10px; font-family: 'Times New Roman', Times, serif; width: 1122px;">
             
             <!-- KOP SURAT & INFO -->
             <div class="kop-container">
@@ -112,7 +116,7 @@
                     </tr>
                 </thead>
                 <tbody id="pdf-tbody">
-                    <!-- Diisi via JavaScript (cetak-pdf.js) -->
+                    <!-- Diisi via JS -->
                 </tbody>
             </table>
 
