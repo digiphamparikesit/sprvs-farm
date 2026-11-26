@@ -106,33 +106,41 @@
 
         // Fungsi Hapus Data
         window.hapusData = async function(id) {
-            if (!confirm('Apakah Anda yakin ingin menghapus data supervisi ini? Data detail pertanyaan juga akan terhapus secara permanen.')) {
+            if (!confirm('Apakah Anda yakin ingin menghapus data supervisi ini?')) {
                 return;
             }
 
             try {
-                // 1. Hapus detail terlebih dahulu (menghindari error foreign key)
-                const { error: errDetail } = await supabase
+                // 1. Hapus detail terlebih dahulu
+                const { data: deletedDetail, error: errDetail } = await supabase
                     .from('supervisi_detail')
                     .delete()
-                    .eq('supervisi_id', id);
+                    .eq('supervisi_id', id)
+                    .select(); // Tambahkan .select() untuk melihat apakah data benar-benar terhapus
 
-                if (errDetail) throw errDetail;
+                if (errDetail) throw new Error('Gagal hapus detail: ' + errDetail.message);
 
                 // 2. Hapus data header
-                const { error: errHeader } = await supabase
+                const { data: deletedHeader, error: errHeader } = await supabase
                     .from('supervisi')
                     .delete()
-                    .eq('id', id);
+                    .eq('id', id)
+                    .select(); // Tambahkan .select()
 
-                if (errHeader) throw errHeader;
+                if (errHeader) throw new Error('Gagal hapus header: ' + errHeader.message);
+
+                // 3. CEK: Apakah data benar-benar terhapus?
+                if (deletedHeader.length === 0) {
+                    // Jika panjang array 0, berarti Supabase menolak hapus (biasanya karena RLS)
+                    throw new Error('Data gagal dihapus. Kemungkinan terblokir oleh kebijakan RLS Supabase.');
+                }
 
                 showAlert('Data berhasil dihapus!', 'success');
                 loadRiwayat(); // Reload tabel
 
             } catch (error) {
                 console.error(error);
-                showAlert('Gagal menghapus data: ' + error.message, 'error');
+                showAlert('Gagal menghapus: ' + error.message, 'error');
             }
         };
 
