@@ -12,6 +12,25 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     
     <script type="module" src="assets/js/cetak-pdf.js"></script>
+
+    <style>
+        /* CSS Khusus untuk Print/PDF agar Header Tabel Berulang */
+        @media print {
+            thead { display: table-header-group; }
+            tr { page-break-inside: avoid; }
+            .sub-judul-row { page-break-after: avoid; } /* Agar sub-judul tidak terpisah dari tabelnya */
+        }
+
+        /* Styling Sub Judul (Kelompok) */
+        .sub-judul-row td {
+            background-color: #e2e8f0 !important; /* Warna abu-abu terang */
+            font-weight: bold;
+            font-size: 11px;
+            padding: 8px !important;
+            text-align: left;
+            border: 1px solid black;
+        }
+    </style>
 </head>
 <body>
 
