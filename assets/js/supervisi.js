@@ -84,7 +84,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const pertanyaanTersaring = semuaPertanyaan.filter(q => {
             if (!q.default_ruangan) return false; 
-            return q.default_ruangan.toLowerCase().includes(keywordFilter.toLowerCase());
+            
+            const ruanganDB = q.default_ruangan.toLowerCase();
+            
+            // JIKA YANG DIPILIH ADALAH RUANGAN FARMASI (keywordFilter berisi 'depo', 'cathlab', dll)
+            const isFarmasiDipilih = selectKategori.value === 'Farmasi';
+            
+            if (isFarmasiDipilih) {
+                // Cari pertanyaan yang di DB mengandung kata 'depo', 'farmasi', atau 'farklin'
+                return ruanganDB.includes('depo') || ruanganDB.includes('farmasi') || ruanganDB.includes('farklin');
+            } else {
+                // Jika Unit, gunakan pencocokan kata kunci seperti biasa (igd, laundry, dll)
+                return ruanganDB.includes(keywordFilter.toLowerCase());
+            }
         });
 
         if (pertanyaanTersaring.length === 0) {
