@@ -67,36 +67,72 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     document.getElementById('pdf-tbody').innerHTML = tbodyHtml;
 
-    // 5. Tombol Cetak
+        // 5. Tombol Cetak (Membuka Preview Terlebih Dahulu)
     document.getElementById('btn-cetak').addEventListener('click', () => {
         const element = document.getElementById('print-area');
+        const modal = document.getElementById('pdf-preview-modal');
+        const previewContent = document.getElementById('preview-content');
+        
         element.style.display = 'block'; // Tampilkan sementara agar bisa dirender
+        
+        // Beri efek loading di modal
+        modal.style.display = 'flex';
+        previewContent.innerHTML = '<p>Sedang memproses dokumen... Mohon tunggu.</p>';
 
-        // Tambahkan CSS sementara untuk memastikan header tabel berulang
+        // Tambahkan style sementara agar tabel rapi
         const style = document.createElement('style');
         style.innerHTML = `
             @media print {
                 thead { display: table-header-group; }
                 tr { page-break-inside: avoid; }
             }
-            /* Sembunyikan kop surat di halaman ke-2 dan seterusnya */
-            .html2pdf__page-break ~ .kop-container { display: none; }
         `;
         document.head.appendChild(style);
 
+        // Konfigurasi HTML2PDF
         const opt = {
-            margin:       [10, 10, 10, 10], // Margin standar
+            margin:       [10, 10, 10, 10],
             filename:     `Supervisi_Farmasi_${header.ruangan ? header.ruangan.nama_ruangan : 'RS'}_${header.tanggal}.pdf`,
             image:        { type: 'jpeg', quality: 0.98 },
             html2canvas:  { scale: 2, useCORS: true },
             jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' },
-            // PENTING: mode 'css' memaksa html2pdf mengikuti aturan CSS page-break
             pagebreak:    { mode: ['css', 'legacy'] }
         };
 
-        html2pdf().set(opt).from(element).save().then(() => {
-            element.style.display = 'none';
-            document.head.removeChild(style); // Bersihkan style setelah selesai
+        // Render HTML ke Canvas (Gambar)
+        html2pdf().set(opt).from(element).toCanvas().then(canvas => {
+            const imgData = canvas.toDataURL('image/jpeg');
+            
+            // Tampilkan gambar hasil render ke dalam modal
+            previewContent.innerHTML = `<img src="${imgData}" style="width: 100%; max-width: 1000px; box-shadow: 0 0 10px rgba(0,0,0,0.2);">`;
+            
+            // Event Listener untuk Tombol Download di dalam Modal
+            document.getElementById('btn-download-pdf').onclick = () => {
+                // Proses konversi canvas ke PDF dan langsung download
+                const pdf = new jspdf.jsPDF({
+                    orientation: 'landscape',
+                    unit: 'mm',
+                    format: 'a4'
+                });
+                
+                const imgProps = pdf.getImageProperties(imgData);
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                
+                pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+                pdf.save(opt.filename);
+            };
+
+        }).catch(err => {
+            console.error(err);
+            previewContent.innerHTML = '<p style="color: red;">Gagal memproses dokumen.</p>';
         });
     });
+
+    // 6. Logika untuk Menutup Modal Preview
+    document.getElementById('btn-close-preview').addEventListener('click', () => {
+        document.getElementById('pdf-preview-modal').style.display = 'none';
+        document.getElementById('print-area').style.display = 'none'; // Sembunyikan lagi area print
+    });
+  });
 });
