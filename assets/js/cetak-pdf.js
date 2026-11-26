@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
+    // 1. Ambil Data dari Supabase
     const { data: header, error: errHeader } = await supabase
         .from('supervisi')
         .select(`*, ruangan (nama_ruangan)`)
@@ -34,7 +35,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    // Isi Data ke HTML
+    // 2. Isi Data ke HTML
     document.getElementById('pdf-tanggal').innerText = `${formatTanggalIndo(header.tanggal)} / ${header.jam}`;
     document.getElementById('pdf-supervisor').innerText = header.apoteker_supervisor_nama;
     document.getElementById('pdf-ruangan').innerText = header.ruangan ? header.ruangan.nama_ruangan : '-';
@@ -42,7 +43,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('pdf-risiko').innerText = header.kategori_risiko;
     document.getElementById('pdf-metode').innerText = `${header.metode} (Sampel: ${header.sampel})`;
 
-    // Render Tabel & Sub Judul
+    // 3. Render Tabel & Sub Judul
     let tbodyHtml = '';
     let lastKelompok = '';
 
@@ -73,7 +74,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     document.getElementById('pdf-tbody').innerHTML = tbodyHtml;
 
-    // Tombol Cetak
+    // 4. Tombol Cetak
     document.getElementById('btn-cetak').addEventListener('click', () => {
         const element = document.getElementById('print-area');
         const modal = document.getElementById('pdf-preview-modal');
@@ -85,40 +86,66 @@ document.addEventListener('DOMContentLoaded', async () => {
         previewResult.style.display = 'none';
         previewResult.innerHTML = '';
 
-        // Tampilkan elemen sementara agar html2canvas bisa membacanya
-        element.style.display = 'block';
+        element.style.display = 'block'; // Tampilkan sementara agar bisa dirender
 
         // Render ke Gambar untuk Preview
         html2canvas(element, { scale: 1.5, useCORS: true, scrollY: 0 }).then(canvas => {
             const imgData = canvas.toDataURL('image/jpeg', 0.95);
             
-            // Tampilkan di modal
             previewResult.innerHTML = `<img src="${imgData}" style="max-width: 100%; height: auto; box-shadow: 0 0 10px rgba(0,0,0,0.2);">`;
             loadingText.style.display = 'none';
             previewResult.style.display = 'block';
 
-            // Sembunyikan kembali print-area dari layar utama
-            element.style.display = 'none';
+            element.style.display = 'none'; // Sembunyikan lagi
 
-            // Setup Tombol Download
-            document.getElementById('btn-download-pdf').onclick = () => {
-                // Tampilkan lagi sementara untuk html2pdf
-                element.style.display = 'block';
+            // --- LOGIKA DOWNLOAD PDF DENGAN HEADER BERULANG ---
+            document.getElementById('btn-download-pdf').onclick = async () => {
+                element.style.display = 'block'; // Tampilkan lagi untuk diproses
                 
+                // 1. Buat gambar khusus untuk Header Tabel saja
+                const theadElement = document.querySelector('#print-area table thead');
+                let theadImgData = null;
+                let theadHeightMm = 0;
+
+                if (theadElement) {
+                    const theadCanvas = await html2canvas(theadElement, { scale: 2, backgroundColor: '#ffffff' });
+                    theadImgData = theadCanvas.toDataURL('image/jpeg');
+                    // Konversi tinggi pixel ke mm (standar A4 landscape lebar 297mm / 1122px)
+                    theadHeightMm = (theadCanvas.height * 277) / theadCanvas.width; // dikurangi margin
+                }
+
                 const opt = {
                     margin:       [10, 10, 10, 10],
                     filename:     `Supervisi_Farmasi_${header.tanggal}.pdf`,
                     image:        { type: 'jpeg', quality: 0.98 },
                     html2canvas:  { scale: 2, useCORS: true, scrollY: 0 },
                     jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' },
-                    pagebreak:    { mode: ['css', 'legacy'] } // Memaksa header tabel berulang
+                    pagebreak:    { mode: ['css', 'legacy'] }
                 };
 
-                html2pdf().set(opt).from(element).save().then(() => {
-                    element.style.display = 'none';
+                // 2. Generate PDF
+                html2pdf().set(opt).from(element).toPdf().get('pdf').then((pdf) => {
+                    const totalPages = pdf.internal.getNumberOfPages();
+                    const pageWidth = pdf.internal.pageSize.getWidth();
+                    const pageHeight = pdf.internal.pageSize.getHeight();
+
+                    // 3. Tempel Header Tabel di Halaman 2 dst (Halaman 1 sudah ada dari HTML)
+                    if (theadImgData) {
+                        for (let i = 2; i <= totalPages; i++) {
+                            pdf.setPage(i);
+                            
+                            // Kertas putih di atas agar tidak menimpa teks tabel yang terpotong
+                            pdf.setFillColor(255, 255, 255); 
+                            pdf.rect(10, 10, pageWidth - 20, theadHeightMm + 2, 'F');
+                            
+                            // Tempel gambar header tabel
+                            pdf.addImage(theadImgData, 'JPEG', 10, 10, pageWidth - 20, theadHeightMm);
+                        }
+                    }
+                }).save().then(() => {
+                    element.style.display = 'none'; // Sembunyikan setelah selesai
                 });
             };
-
         }).catch(err => {
             console.error(err);
             loadingText.innerText = 'Gagal memproses dokumen.';
