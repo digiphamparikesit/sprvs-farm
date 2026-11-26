@@ -10,7 +10,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    // 1. Ambil Data dari Supabase
     const { data: header, error: errHeader } = await supabase
         .from('supervisi')
         .select(`*, ruangan (nama_ruangan)`)
@@ -22,10 +21,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
+    // Pastikan kolom tindak_lanjut diambil dari database
     const { data: detail, error: errDetail } = await supabase
         .from('supervisi_detail')
         .select(`
-            status, catatan_temuan,
+            status, catatan_temuan, tindak_lanjut,
             master_pertanyaan (no_urut, objek_pemeriksaan, acuan, pengamatan_dilapangan, kategori, default_ruangan, kelompok)
         `)
         .eq('supervisi_id', supervisiId);
@@ -35,7 +35,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    // 2. Isi Data ke HTML
     document.getElementById('pdf-tanggal').innerText = `${formatTanggalIndo(header.tanggal)} / ${header.jam}`;
     document.getElementById('pdf-supervisor').innerText = header.apoteker_supervisor_nama;
     document.getElementById('pdf-ruangan').innerText = header.ruangan ? header.ruangan.nama_ruangan : '-';
@@ -43,46 +42,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('pdf-risiko').innerText = header.kategori_risiko;
     document.getElementById('pdf-metode').innerText = `${header.metode} (Sampel: ${header.sampel})`;
 
-    let tbodyHtml = '';
-    let lastKelompok = '';
-
-    if (detail) {
-        detail.sort((a, b) => a.master_pertanyaan.no_urut.localeCompare(b.master_pertanyaan.no_urut));
-        detail.forEach((item) => {
-            const q = item.master_pertanyaan;
-            const color = item.status === 'S' ? 'green' : 'red';
-            if (q.kelompok && q.kelompok !== lastKelompok) {
-                tbodyHtml += `<tr class="sub-judul-row"><td colspan="7">${q.kelompok}</td></tr>`;
-                lastKelompok = q.kelompok;
-            }
-            tbodyHtml += `
-                <tr>
-                    <td style="text-align: center;">${q.no_urut}</td>
-                    <td>${q.objek_pemeriksaan}</td>
-                    <td style="text-align: center;">${q.acuan}</td>
-                    <td>${q.pengamatan_dilapangan}</td>
-                    <td style="text-align: center; color: ${color}; font-weight: bold;">${item.status}</td>
-                    <td>${item.catatan_temuan || '-'}</td>
-                    <td style="text-align: center;">${q.kategori}</td>
-                </tr>
-            `;
-        });
-    }
-    document.getElementById('pdf-tbody').innerHTML = tbodyHtml;
-
-    // 3. TOMBOL CETAK
     document.getElementById('btn-cetak').addEventListener('click', async () => {
-        // Pastikan library jsPDF tersedia
-        if (!window.jspdf) {
-            showAlert('Library jsPDF tidak ditemukan. Pastikan script dimuat.', 'error');
-            return;
-        }
-
+        if (!window.jspdf) return showAlert('Library jsPDF tidak ditemukan.', 'error');
+        
         const { jsPDF } = window.jspdf;
-        // Inisialisasi jsPDF mode landscape
         const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'landscape' });
 
-        // FUNGSI MENGGAMBAR KOP SURAT
         function gambarKopSurat() {
             doc.setFont("times", "normal");
             doc.setFontSize(12);
@@ -111,7 +76,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             doc.setFontSize(10);
             doc.setFont("times", "normal");
             
-            // Info Kiri
             doc.text("Unit / Ruangan", 10, 56);
             doc.text(`: ${header.ruangan ? header.ruangan.nama_ruangan : '-'}`, 45, 56);
             doc.text("Apoteker Supervisor", 10, 61);
@@ -119,7 +83,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             doc.text("Kategori Risiko Lokasi", 10, 66);
             doc.text(`: ${header.kategori_risiko}`, 45, 66);
 
-            // Info Kanan
             doc.text("Tanggal dan Jam", 150, 56);
             doc.text(`: ${formatTanggalIndo(header.tanggal)} / ${header.jam}`, 185, 56);
             doc.text("Penanggung Jawab Unit", 150, 61);
@@ -130,21 +93,25 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         gambarKopSurat();
 
-        // SUSUN DATA UNTUK TABEL
         let bodyData = [];
         let currentKelompok = '';
 
         if (detail) {
+            detail.sort((a, b) => a.master_pertanyaan.no_urut.localeCompare(b.master_pertanyaan.no_urut));
             detail.forEach((item) => {
                 const q = item.master_pertanyaan;
-                // Baris Sub-Judul
+                
+                // Render Sub Judul
                 if (q.kelompok && q.kelompok !== currentKelompok) {
                     bodyData.push([
-                        { content: q.kelompok, colSpan: 7, styles: { fillColor: [226, 232, 240], fontStyle: 'bold', halign: 'left' } }
+                        { content: q.kelompok, colSpan: 8, styles: { fillColor: [226, 232, 240], fontStyle: 'bold', halign: 'left' } }
                     ]);
                     currentKelompok = q.kelompok;
                 }
-                // Baris Data
+
+                // LOGIKA BARU: S = 0, TS = Nilai Kategori
+                let nilaiKategori = item.status === 'S' ? '0' : q.kategori;
+
                 bodyData.push([
                     { content: q.no_urut, styles: { halign: 'center' } },
                     q.objek_pemeriksaan,
@@ -152,15 +119,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                     q.pengamatan_dilapangan,
                     { content: item.status, styles: { halign: 'center', textColor: item.status === 'S' ? [0, 128, 0] : [255, 0, 0], fontStyle: 'bold' } },
                     item.catatan_temuan || '-',
-                    { content: q.kategori, styles: { halign: 'center' } }
+                    { content: item.tindak_lanjut || '-', styles: { halign: 'center' } }, // Kolom Tindak Lanjut
+                    { content: nilaiKategori, styles: { halign: 'center' } }
                 ]);
             });
         }
 
-        // PANGGIL AUTOTABLE
-        // Karena jsPDF-autotable versi baru mendaftarkan diri ke doc secara otomatis
         doc.autoTable({
-            startY: 72, // Mulai setelah kop surat
+            startY: 72,
             head: [[
                 { content: 'No', styles: { halign: 'center' } },
                 { content: 'Objek Pemeriksaan' },
@@ -168,13 +134,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 { content: 'Pengamatan di Lapangan' },
                 { content: 'S / TS', styles: { halign: 'center' } },
                 { content: 'Catatan/nomor temuan' },
+                { content: 'Hasil Tindak Lanjut', styles: { halign: 'center' } }, // Header Baru
                 { content: 'Kategori', styles: { halign: 'center' } }
             ]],
             body: bodyData,
             theme: 'grid',
             styles: {
                 font: 'times',
-                fontSize: 9,
+                fontSize: 8, // Ukuran font sedikit dikecilkan agar muat kolom baru
                 cellPadding: 2,
                 lineWidth: 0.1,
                 lineColor: [0, 0, 0],
@@ -188,28 +155,25 @@ document.addEventListener('DOMContentLoaded', async () => {
             columnStyles: {
                 0: { cellWidth: 10 },
                 1: { cellWidth: 40 },
-                2: { cellWidth: 25 },
-                3: { cellWidth: 85 },
-                4: { cellWidth: 15 },
-                5: { cellWidth: 50 },
-                6: { cellWidth: 20 }
+                2: { cellWidth: 22 },
+                3: { cellWidth: 70 }, // Lebar disesuaikan karena kolom bertambah
+                4: { cellWidth: 12 },
+                5: { cellWidth: 45 },
+                6: { cellWidth: 30 }, // Lebar Tindak Lanjut
+                7: { cellWidth: 15 }
             },
             didDrawPage: function (data) {
-                // Jika halaman > 1, beri garis atas
                 if (doc.internal.getNumberOfPages() > 1) {
                     doc.setLineWidth(0.5);
                     doc.line(10, 10, 287, 10);
                 }
-                // Footer Halaman
                 const str = "Halaman " + doc.internal.getNumberOfPages();
                 doc.setFontSize(8);
                 doc.text(str, 280, 200, { align: "right" });
             }
         });
 
-        // TANDA TANGAN
         let finalY = doc.lastAutoTable.finalY + 15;
-        
         if (finalY > 170) {
             doc.addPage();
             finalY = 20;
@@ -224,7 +188,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         doc.text("(...........................................)", 60, finalY, { align: "center" });
         doc.text("(...........................................)", 220, finalY, { align: "center" });
 
-        // Simpan PDF
         doc.save(`Supervisi_${header.ruangan ? header.ruangan.nama_ruangan : 'RS'}_${header.tanggal}.pdf`);
     });
 });
