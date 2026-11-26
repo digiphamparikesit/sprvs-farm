@@ -126,15 +126,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             const row = e.target.closest('tr');
             const catatanInput = row.querySelector('.input-catatan');
             const tindakInput = row.querySelector('.input-tindak-lanjut');
+            const kategoriCell = row.querySelector('.kategori-value'); // Ambil elemen span kategori
 
             if (e.target.value === 'TS') {
+                // Jika memilih TS
                 catatanInput.disabled = false;
                 catatanInput.required = true;
                 catatanInput.focus();
                 tindakInput.disabled = false;
                 tindakInput.required = true;
                 row.style.backgroundColor = '#fff3cd';
+                
+                // Kembalikan angka asli
+                if (kategoriCell) kategoriCell.innerText = kategoriCell.dataset.asli;
             } else {
+                // Jika memilih S
                 catatanInput.disabled = true;
                 catatanInput.required = false;
                 catatanInput.value = '';
@@ -142,6 +148,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 tindakInput.required = false;
                 tindakInput.value = '';
                 row.style.backgroundColor = '';
+                
+                // Ubah angka menjadi 0
+                if (kategoriCell) kategoriCell.innerText = '0';
             }
         }
     });
